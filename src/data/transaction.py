@@ -1,54 +1,52 @@
-#This transaction class set up what the user can put into a transaction
-
-class Transaction(object):
+"""
+This is the setup for our transaction which contains version, transaction_id, transaction_type, tx_generator_address, inputs, outputs
+and I also added some getters to retrieve information from the transaction 
+"""
+class Transaction:
     
     #constructor that set up the fields of the transaction 
     
-    def __init__(self, version, transactionID, transactionType, TxGeneratorAddress, inputs, outputs):
+    def __init__(self, version, transaction_id, transaction_type, tx_generator_address, inputs, outputs):
         self.version = version
-        self.transactionID = transactionID
-        self.transactionType = transactionType
-        self.TxGeneratorAddress = TxGeneratorAddress
+        self.transaction_id = transaction_id
+        self.transaction_type = transaction_type
+        self.tx_generator_address = tx_generator_address
         self.inputs = inputs
         self.outputs = outputs
 
     
-    #function: this function returns all the values for the parameters
+    # this function returns all the values for the parameters
     
-    def returnAll(self):
-        return "Version", self.version, " transactionID: ", self.transactionID, "Transaction Type: ", self.transactionType, " Tx Generator Address: " , self.TxGeneratorAddress, "inputs: ", self.inputs, "outputs: ", self.outputs
+    def return_all(self):
+        return "Version", self.version, " transactionID: ", self.transaction_id, "Transaction Type: ", self.transaction_type, " Tx Generator Address: " , self.tx_generator_address, "inputs: ", self.inputs, "outputs: ", self.outputs
 
-    #function: this function returns the version of the transaction 
+    # this function returns the version of the transaction 
     
-    def returnVersion(self):
+    def return_version(self):
         return self.version
     
-    #function: this function returns the transactionID for transaction 
+    # this function returns the transaction_id for transaction 
     
-    def returnTransactionID(self):
-        return self.transactionID
+    def return_transaction_id(self):
+        return self.transaction_id
 
-    #function: this function returns the transaction type for the transaction     
+    # this function returns the transaction_type for the transaction     
     
-    def returnTransactionType(self):
-        return self.transactionType
+    def return_transaction_type(self):
+        return self.transaction_type
     
-    #function: this function returns the transaction generator address for the transaction 
+    # this function returns the tx_generator_address for the transaction 
     
-    def returnTxGeneratorAddress(self):
-        return self.TxGeneratorAddress
+    def return_tx_Generator_Address(self):
+        return self.tx_generator_address
     
-    #function: this function returns the inputs for the transaction 
+    # this function returns the inputs for the transaction 
     
-    def returnInputs(self):
+    def return_inputs(self):
         return self.inputs
 
-    #function: this function returns the outputs for the transaction     
+    # this function returns the outputs for the transaction     
     
-    def returnOutputs(self):
+    def return_Outputs(self):
         return self.outputs
 
-
-my_transaction = Transaction("version2", "123121", "Admin", "asl12312", "input1", "output1")
-print(my_transaction.returnAll())
-    
