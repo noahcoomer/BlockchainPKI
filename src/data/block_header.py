@@ -4,7 +4,7 @@ import json
 import datetime as date
 
 class Block:
-    def _init_(self, version, id, transactions, previous_hash, merkle_hash, block_generator_address, 
+    def __init__(self, version, id, transactions, previous_hash, merkle_hash, block_generator_address, 
               block_generation_proof, nonce, status, t_counter):
         self.version = version                            # A version number to track software protocol upgrades
         self.id = id                                      # Block index or block height
