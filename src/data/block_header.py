@@ -13,25 +13,26 @@ class Block:
         self.transactions = transactions                  # Transaction ??
         # A reference to the previous (parent) block in the chain
         self.previous_hash = previous_hash
-        # A hash of the root of the Merkel tree of this block's transactions
+        # A hash of the root of the Merkel tree of this block's transactions.
         self.merkle_hash = merkle_hash
         self.timestamp = date.datetime.now()              # Creation time of this block
         # Public key of the Validator node proposed and broadcast the block
         self.block_generator_address = block_generator_address
         # Aggregated signature of Block Generator & Validator
         self.block_generation_proof = block_generation_proof
-        # A counter used for Concensus algorithm
+        # A counter used for Concensus algorithm. The value of nonce will keep changing until
+        # the node generates a block that satisfied with the Concensus
         self.nonce = nonce
-        # Block status - Proposed/Confirmed/Rejected
+        # Block status - Proposed/Confirmed/Rejected/"Accepted??"
         self.status = status
         # Total number of transaction included in this block ???
         self.t_counter = t_counter
         # The hash of the block header
-        self.hash = self.block_hash()
+        self.hash = self.compute_hash()
 
     # Return the block hash
 
-    def block_hash(self):
+    def compute_hash(self):
         # self.__dict__ is used to store the Block object's attributes into dictionary
         # json.dumps convert the data in the dictionary to JSON form
         block_string = json.dumps(self.__dict__, sort_keys=True)
