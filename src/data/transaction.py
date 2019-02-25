@@ -12,7 +12,7 @@ class Transaction:
         self.version = version  # specifies which rules this transaction follows
         self.transaction_id = transaction_id  # transaction sequence #
         self.transaction_type = transaction_type  # Admin/Regular
-        # public key of ttransaction generator-Client or Block validators
+        # public key of transaction generator-Client or Block validators
         self.tx_generator_address = tx_generator_address
         self.inputs = inputs  # type of services requested
         self.outputs = outputs  # request result
