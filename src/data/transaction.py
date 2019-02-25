@@ -19,7 +19,7 @@ class Transaction:
     # this function returns all the values for the parameters
 
     def return_all(self):
-        return "Version", self.version, " transactionID: ", self.transaction_id, "Transaction Type: ", self.transaction_type, " Tx Generator Address: ", self.tx_generator_address, "inputs: ", self.inputs, "outputs: ", self.outputs
+        return "Version", self.version, "transactionID: ", self.transaction_id, "Transaction Type: ", self.transaction_type, " Tx Generator Address: ", self.tx_generator_address, "inputs: ", self.inputs, "outputs: ", self.outputs
 
     # this function returns the version of the transaction
 
