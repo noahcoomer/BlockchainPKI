@@ -5,7 +5,7 @@ import datetime as date
 
 
 class Block:
-    def __init__(self, version, id, transactions, previous_hash, merkle_hash, block_generator_address,
+    def __init__(self, version, id, transactions, previous_hash, merkle_hash, timestamp, block_generator_address,
                  block_generation_proof, nonce, status, t_counter):
         # A version number to track software protocol upgrades
         self.version = version
@@ -15,7 +15,7 @@ class Block:
         self.previous_hash = previous_hash
         # A hash of the root of the Merkel tree of this block's transactions.
         self.merkle_hash = merkle_hash
-        self.timestamp = date.datetime.now()              # Creation time of this block
+        self.timestamp = timestamp             # Creation time of this block
         # Public key of the Validator node proposed and broadcast the block
         self.block_generator_address = block_generator_address
         # Aggregated signature of Block Generator & Validator
