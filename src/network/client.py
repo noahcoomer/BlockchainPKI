@@ -29,6 +29,9 @@ class Client(object):
         return decoded_decrypted_msg
 
 private_key, public_key = Client.generate_keys()
-
-
 print(private_key,public_key)
+message = b'This will be my test message'
+
+encoded = Client.encrypt_private_key(message, private_key)
+decoded = Client.decrypt_public_key(encoded, public_key)
+print(decoded)
