@@ -7,6 +7,7 @@ my_transaction = Transaction(1, 'asfasdfss112', 'Admin', 'sd3lkaslkf2',
 
 
 # this function will test whether the transaction has been added to the mempool
+# to execute this test, run pytest in terminal
 def test_add_transaction():
     my_blockchain = Blockchain()  # first, initiate a blockchain object
     # add it to the mempool
