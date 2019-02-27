@@ -14,7 +14,7 @@ class Client(object):
     
     def __init__(self):
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.connect_to_network(self.ip, self.port)
+        self.connect_to_network(self.host, self.port)
         self.blockchain = [] #update_blockchain()
         
 
