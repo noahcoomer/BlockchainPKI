@@ -79,6 +79,7 @@ class Blockchain:
 
     # Mining: add unconfirmed transactions into a block and using the new concensus algorithm to
     # find a new consensus_hash.
+
     def mine(self):
         if not self.unconfirmed_transactions:
             return False
