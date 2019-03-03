@@ -28,7 +28,7 @@ class Validator(object):
 
     def _init_net(self):
         '''
-            Initalizes a TCP sockets for incoming traffic and binds it. 
+            Initalizes a TCP socket for incoming traffic and binds it. 
 
             If the connection is refused, -1 will be returned.
             If the address is already in use, a new random port will be recursively tried.
@@ -76,14 +76,11 @@ class Validator(object):
             receive_thread = Thread(target=_receive)
             receive_thread.start()  # Start the thread
 
-    def addr(self, which_net=True):
+    def addr(self):
         '''
-            Returns the address of a specific net or -1 upon error. By default, it 
-            returns the address of the inbound connection.
-
-            :param bool which_net: indicates which socket (0 is outbound, 1 is inbound)
+            Returns the address
         '''
-        return self.address[which_net] if self.address[which_net] else -1
+        return self.address
 
     def message(self, v, msg):
         '''
@@ -105,7 +102,7 @@ class Validator(object):
                 if isinstance(msg, str):
                     msg = msg.encode()  # encode the msg to binary
                 print("Attempting to send to %s:%s" % v.address)
-                # Create a new socket
+                # Create a new socket (the outbound net)
                 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                     s.connect(address)  # Connect to v
                     s.sendall(msg)  # Send the entirety of the message
