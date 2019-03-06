@@ -7,6 +7,7 @@ from threading import Thread
 import time
 import errno
 import socket
+import threading
 
 INCONN_THRESH = 128
 OUTCONN_THRESH = 8
@@ -24,17 +25,19 @@ class Validator(object):
         '''
         self.name = name
         self.address = bind_addr, bind_port
+        self.is_receiving = False
         self._init_net()
 
     def _init_net(self):
         '''
-            Initalizes a TCP socket for incoming traffic and binds it. 
+            Initializes a TCP socket for incoming traffic and binds it.
 
             If the connection is refused, -1 will be returned.
             If the address is already in use, a new random port will be recursively tried.
         '''
         try:
             self.net = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            self.net.setblocking(False)
             self.net.bind(self.address)  # Bind to address
             self.net.listen()  # Listen for connections
             self.receive()  # Start receiving data
@@ -55,26 +58,32 @@ class Validator(object):
         '''
             Receive incoming connections on a seperate thread
 
-            The thread is terminated when receive_thread's "do_run" 
+            The thread is terminated when receive_thread's "do_run"
             attribute is set to False. See cleanup().
         '''
         def _receive():
-            while True:
-                conn, addr = self.net.accept()
-                print("Connection created from %s:%d" % addr)
-                with conn:
-                    while True:
-                        data = conn.recv(4096)
-                        if not data:
-                            break
-                        else:
-                            data = data.decode()
-                            print("Data received: %s" % data)
-
+            t = threading.currentThread()
+            while getattr(t, "do_run", True):
+                try:
+                    conn, addr = self.net.accept()
+                    conn.setblocking(True)
+                    with conn:
+                        # print("Connection created from %s:%d" % addr)
+                        while True:
+                            data = conn.recv(4096)
+                            if not data:
+                                break
+                            else:
+                                data = data.decode()
+                                print("Data received: %s" % data)
+                except BlockingIOError:
+                    continue  # non-blocking sockets raise BlockingIOError, but these can be ignored
         if self.net:
+            self.is_receiving = True
+
             # Create a new thread to handle incoming connections
-            receive_thread = Thread(target=_receive)
-            receive_thread.start()  # Start the thread
+            self.receive_thread = Thread(target=_receive)
+            self.receive_thread.start()  # Start the thread
 
     def addr(self):
         '''
@@ -90,9 +99,9 @@ class Validator(object):
             :param msg: the message to send to the validator
 
             v's net should be initialized and listening for incoming connections.
-            msg must be an instance of str or bytes. 
+            msg must be an instance of str or bytes.
         '''
-        if self.net and v.net:
+        if self.net and v.net and self.is_receiving:
             # Connect to v's inbound net using self's outbound net
             address = v.address
             if not isinstance(msg, str):
@@ -101,20 +110,31 @@ class Validator(object):
             else:
                 if isinstance(msg, str):
                     msg = msg.encode()  # encode the msg to binary
-                print("Attempting to send to %s:%s" % v.address)
+                # print("Attempting to send to %s:%s" % v.address)
                 # Create a new socket (the outbound net)
                 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-                    s.connect(address)  # Connect to v
-                    s.sendall(msg)  # Send the entirety of the message
+                    s.setblocking(True)
+                    try:
+                        s.connect(address)  # Connect to v
+                        s.sendall(msg)  # Send the entirety of the message
+                    except OSError as e:
+                        # Except cases for if the send fails
+                        if e.errno == errno.ECONNREFUSED:
+                            return -1, e
         else:
             raise Exception(
                 "The validator's net must be initialized and listening for connections")
 
-    def cleanup(self):
+    def close(self):
         '''
             Closes sockets and stops the receive thread.
         '''
-        self.net.close()  # Close the incoming socket
+        self.receive_thread.do_run = False  # tell receive_thread to stop running
+        self.receive_thread.join()  # wait for the thread to exit
+        self.is_receiving = False
+        self.net.close()  # close the inbound socket
+
+        print("Closed %s" % self.name)
 
 
 if __name__ == "__main__":
@@ -129,3 +149,12 @@ if __name__ == "__main__":
     # Alice can also act as a server and send messages to Bob.
     Bob.message(Alice, "Hello, Alice. My name is Bob.")
     Alice.message(Bob, "How are you, Bob?")
+
+    # The order of messages should be preserved.
+    for i in range(15):
+        Alice.message(Bob, "Message %d to Bob" % i)
+        Bob.message(Alice, "Message %d to Alice" % i)
+
+    # Close both Alice and Bob
+    Alice.close()
+    Bob.close()
