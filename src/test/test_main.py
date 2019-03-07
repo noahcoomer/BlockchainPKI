@@ -1,6 +1,7 @@
 import sys
 sys.path.append('../')
 #import pytest
+from hashlib import sha256
 import json
 import requests
 import time
@@ -25,14 +26,20 @@ def hello():
 
 @app.route('/new_transaction', methods=['GET'])
 def new_transaction():
-    
+    block_string = json.dumps("123456")
+    proof_string = json.dumps("000234567")
+
     transactions = transaction.Transaction(
         version=0, 
         transaction_id=123456, 
         transaction_type="test", 
         tx_generator_address="1234567", 
+        time_stamp = time.time(),
+        public_key = sha256((block_string.encode()).hexdigest()),
+        proof = sha256((proof_string.encode()).hexdigest()),
         inputs="\tPrevious tx: \n\t Index: 0 \n\t scriptSig: ", 
-        outputs="\tValue: 5000000000 \n\t scriptPubKey:"
+        outputs="\tValue: 5000000000 \n\t scriptPubKey:",
+        lock_time = 12334
     )
     tx_data = json.dumps({"transaction" : transactions.__dict__}, sort_keys=True)
     #print(tx_data)
