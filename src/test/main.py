@@ -1,20 +1,13 @@
+from data import block
+from data import blockchain
+from data import transaction
+import time
+import json
 import sys
 sys.path.append('../')
 
-import json
 #import requests
-import time
 #from flask import Flask, request
-from data import transaction
-from data import blockchain
-from data import block
-
-
-
-
-
-
-
 
 
 ''' app = Flask(__name__)
