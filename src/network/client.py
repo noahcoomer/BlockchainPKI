@@ -1,10 +1,10 @@
-
 from Crypto import Random
 from Crypto.PublicKey import RSA
 from Crypto.Cipher import PKCS1_OAEP
 from Crypto.Cipher import Salsa20
 import base64
-#pip install pycryptodome
+# pip install pycryptodome
+
 
 class Client(object):
     def __init__(self):
@@ -31,8 +31,9 @@ class Client(object):
         decoded_decrypted_msg = encryptor.decrypt(decoded_encrypted_msg)
         return decoded_decrypted_msg
 
+
 private_key, public_key = Client.generate_keys()
-print(private_key,public_key)
+print(private_key, public_key)
 message = b'This will be my test message'
 
 encoded = Client.encrypt_private_key(message, private_key)
