@@ -23,14 +23,16 @@ class Transaction:
         # a unix timestamp or block number-locktime defines the earlier time that a transaction can be added
         self.lock_time = lock_time
 
-    def input(self, is_admin):
-        round_change = False
-        #leader_selection
-        #registration 
-        query = "123456789"
-        #update
-        revoke = False
+   
+    def admin_tx(self, round_change, leader_selection):
+        if leader_selection == True:
+            round_change = False
+        else:
+            round_change = True
 
+    def regular_tx(self, registration, query, update, revoke):
+        pass
 
-    def outputs(self):
-        request_result = "Result Example"
+    def output(self):
+        pass
+
