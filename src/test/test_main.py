@@ -9,13 +9,14 @@ from flask import Flask, request
 from data import transaction
 from data import blockchain
 from data import block
-import random
+from random import shuffle
+
 app = Flask(__name__)
 
 # the node's copy of blockchain
 blockchain = blockchain.Blockchain()
 
-
+############################# Connection Test ###############################
 @app.route('/', methods=['POST'])
 def hello_world():
     return 'Hello, World!'
@@ -23,11 +24,13 @@ def hello_world():
 @app.route('/hello')
 def hello():
     return 'Hello, World'
+################################################################
+
 
 @app.route('/new_transaction', methods=['GET'])
 def new_transaction():
-    block_string = json.dumps("123456")
-    proof_string = json.dumps("000234567")
+    #block_string = json.dumps("123456")
+    #proof_string = json.dumps("000234567")
 
     transactions = transaction.Transaction(
         version=0, 
@@ -35,49 +38,59 @@ def new_transaction():
         transaction_type="test", 
         tx_generator_address="1234567", 
         time_stamp = time.time(),
-        public_key = sha256((block_string.encode()).hexdigest()),
-        proof = sha256((proof_string.encode()).hexdigest()),
-        inputs="\tPrevious tx: \n\t Index: 0 \n\t scriptSig: ", 
-        outputs="\tValue: 5000000000 \n\t scriptPubKey:",
         lock_time = 12334
     )
     tx_data = json.dumps({"transaction" : transactions.__dict__}, sort_keys=True)
-    #print(tx_data)
-    ''' for field in required_fields:
-        if not tx_data.get(field):
-            return "Invalid transaction data", 404
-
-    tx_data["timestamp"] = time.time()
-
-    blockchain.add_new_transaction(tx_data) '''
 
     return tx_data
 
+# endpoint to query unconfirmed transactions
 @app.route('/add_new_transactions', methods=['GET'])
 def add_new_transactions():
 
-    version=0, 
-    transaction_id=123456, 
-    transaction_type="test", 
-    tx_generator_address="1234567", 
-    inputs="\tPrevious tx: \n\t Index: 0 \n\t scriptSig: ", 
-    outputs="\tValue: 5000000000 \n\t scriptPubKey:"
+    unconfirmed_transactions_test = blockchain.unconfirmed_transactions
+
+    version = 0 
+    t_id = 123456
+    transaction_type="Admin"
+    tx_generator_address= sha256( ("1234567".encode())).hexdigest() 
+    s = '0 1 2 3 4 5 6 7 8 9 A B C D E F'.split()
+    type = ["Admin", "Regular"]
 
     for i in range(5):
         transactions = transaction.Transaction(
         version, 
-        transaction_id, 
+        t_id, 
         transaction_type, 
         tx_generator_address, 
-        inputs, 
-        outputs
+        time_stamp = time.time(),
+        lock_time = 12334
     )
+        tx_data = json.dumps({"transaction" : transactions.__dict__}, sort_keys=True)
+        blockchain.add_new_transaction(tx_data)
+        t_id = t_id + i
 
-        blockchain.add_new_transaction(transactions)
-        transaction_id = transaction_id + i
-        tx_generator_address = randomString(8)
+        shuffle(type)
+        transaction_type = type[0] 
 
-    #tx_data = 
+        tx_generator_address = sha256( (str(s).encode())).hexdigest() 
+        shuffle(s)
+    
+    tx_data = json.dumps( unconfirmed_transactions_test, sort_keys=True)
+
+    return tx_data
+
+
+@app.route('/genesis_block', methods=['GET'])
+def get_genesis():
+    #chain_test = blockchain.chain
+    blockchain.create_genesis_block()
+    chain_test = blockchain.last_block
+
+    b_data = json.dumps(chain_test.__dict__, sort_keys=True)
+
+    return b_data 
+
 
 @app.route('/chain', methods=['GET'])
 def get_chain():
@@ -96,10 +109,7 @@ def mine_unconfirmed_transactions():
     return "Block #{} is mined.".format(result)
 
 
-# endpoint to query unconfirmed transactions
-@app.route('/pending_tx')
-def get_pending_tx():
-    return json.dumps(blockchain.unconfirmed_transactions)
+
 
 
 app.run(debug=True, port=8000)
