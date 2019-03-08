@@ -1,4 +1,4 @@
-from block_header import Block
+from .block import Block
 import time
 
 
@@ -6,7 +6,7 @@ class Blockchain:
     difficulty = 3
 
     def __init__(self):
-        self.unconfirm_transactions = []
+        self.unconfirmed_transactions = []
         self.chain = []
         self.create_genesis_block()
 
@@ -17,7 +17,7 @@ class Blockchain:
             transactions=[],
             previous_hash="0",
             merkle_hash="",
-            timestamp=time.time()
+            timestamp=time.time(),
             block_generator_address="",
             block_generation_proof="",
             nonce=0,
@@ -63,6 +63,7 @@ class Blockchain:
 
         block.hash = concensus_hash
         self.chain.append(block)
+        
         return True
 
     # Validate the concensus_hash of the block and verify if it satisfies
@@ -74,28 +75,29 @@ class Blockchain:
                 block.compute_hash() == concensus_hash)
 
     # Add new transaction into the unconfirmed transactions pool
-    def add_transactions(self, transaction):
-        self.unconfirm_transactions.append(transaction)
+    def add_new_transaction(self, transaction):
+        self.unconfirmed_transactions.append(transaction)
 
     # Mining: add unconfirmed transactions into a block and using the new concensus algorithm to
     # find a new consensus_hash.
+
     def mine(self):
-        if not self.unconfirm_transactions:
+        if not self.unconfirmed_transactions:
             return False
 
         last_block = self.last_block
         new_block = Block(
             version=last_block.version,
             id=last_block.id + 1,
-            transactions=self.unconfirm_transactions,
+            transactions=self.unconfirmed_transactions,
             previous_hash=last_block.hash,
             merkle_hash=-1,  # Uncertain...
-            timestamp=time.time()
+            timestamp=time.time(),
             block_generator_address="",
             block_generation_proof="",
             nonce=0,
             status="proposed",
-            t_counter=len(self.unconfirm_transactions)
+            t_counter=len(self.unconfirmed_transactions)
         )
 
         '''
@@ -103,7 +105,8 @@ class Blockchain:
             concensus_hash = self.consensus_algorithms(new_block)
             ...
         '''
+        concensus_hash = 0
         self.add_block(new_block, concensus_hash)
 
-        self.unconfirm_transactions = []
+        self.unconfirmed_transactions = []
         return new_block.id

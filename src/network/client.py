@@ -1,15 +1,14 @@
-
 from Crypto import Random
 from Crypto.PublicKey import RSA
-from Crypto.Cipher import PKCS1_OAEP
-from Crypto.Cipher import Salsa20
 import base64
-#pip install pycryptodome
+# pip install pycryptodome
+
 
 class Client(object):
     def __init__(self):
         pass
 
+    @staticmethod
     def generate_keys():
         modulus_lenght = 256 * 4
         private_key = RSA.generate(modulus_lenght, Random.new().read)
@@ -18,4 +17,4 @@ class Client(object):
 
 
 private_key, public_key = Client.generate_keys()
-print(private_key,public_key)
+print(private_key, public_key)
