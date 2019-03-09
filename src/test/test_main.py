@@ -1,33 +1,22 @@
 import sys
 sys.path.append('../')
-<<<<<<< HEAD
+#import pytest
+from hashlib import sha256
+import json
+import requests
+import time
 import random
-from data import block
-from data import blockchain
-from data import transaction
-from flask import Flask, request, jsonify
-import time
-import requests
-import json
-
-from hashlib import sha256
-'''
-testing: test for transaction, block, and blockchain 
-'''
-#import pytest
-=======
-#import pytest
-from hashlib import sha256
-import json
-import requests
-import time
 from flask import Flask, request
 from data import transaction
 from data import blockchain
 from data import block
 from random import shuffle
 
->>>>>>> c1797a85cb6c8201a4036a07824a8dc4733863d8
+
+'''
+testing: test for transaction, block, and blockchain 
+'''
+
 app = Flask(__name__)
 
 # the node's copy of blockchain
@@ -69,30 +58,6 @@ def new_transaction():
     return tx_data
 
 
-@app.route('/add_new_transactions', methods=['GET'])
-def add_new_transactions():
-
-    version = 0,
-    transaction_id = 123456,
-    transaction_type = "test",
-    tx_generator_address = "1234567",
-    #inputs = "\tPrevious tx: \n\t Index: 0 \n\t scriptSig: ",
-    #outputs = "\tValue: 5000000000 \n\t scriptPubKey:"
-
-    for i in range(5):
-        transactions = transaction.Transaction(
-            version,
-            transaction_id,
-            transaction_type,
-            tx_generator_address
-        )
-
-        blockchain.add_new_transaction(transactions)
-        transaction_id = transaction_id + i
-        #tx_generator_address = randomString(8)
-
-    # tx_data =
-
 #unit test to see whether we can create a block 
 @app.route('/new_block', methods=['GET'])
 def new_block():
@@ -115,24 +80,23 @@ def new_block():
     return block_data
 
 
-#testing whether we can add a new block 
+#testing whether we can add a new block to the blockchain  
 @app.route('/add_new_block', methods=['GET'])
 def add_new_block():
     block_string = ""
-
-    version = 0,
-    id = 0,
+    version = 0
+    id = 0
     transactions = new_transaction()
-    previous_hash = '1231asdfas',
-    merkle_hash = 'asdfas112',
-    time_stamp = time.time(),
-    block_generator_address = 'asdfs1as',
-    block_generation_proof = 'asdfsdwe1211',
-    nonce = 1,
-    status = 'accepted',
-    t_counter = 1,
-    #hash = block.compute_hash()
-    
+    previous_hash = "" #no link to the previous block, currently this is a random hash, will be implemented later  
+    merkle_hash = "" #currently this is a random hash, will be implemented later
+    block_generator_address = sha256( ("1234567".encode())).hexdigest()
+    block_generation_proof = ""
+    time_stamp = time.time()
+    nonce = 0
+    status = ''
+    t_counter = 1
+    type_of_status = ['accepted', 'rejected', 'proposed', 'confirmed']
+    random_string = [0,1,2,3,4,5,6,7,8,9,'a','b','c','d','e','f']
     for i in range(5):
         blocks = block.Block(
             version,
@@ -147,19 +111,24 @@ def add_new_block():
             status,
             t_counter
         )
-
-        blockchain.add_block(blocks, 'proof of work')
+        block_data = json.dumps({"block" : blocks.__dict__}, sort_keys=True)
+        blockchain.add_block(block_data, 'proof of work')
         id = i + 1
-        #previous_hash = randomString(8)
-        #merkle_hash = randomString(8)
-        #block_generator_address = randomString(8)
-        nonce = i + 1
+        previous_hash = random.getrandbits(128)
+        merkle_hash = random.getrandbits(128)
+        block_generator_address = sha256( (str(random_string).encode())).hexdigest()
+        shuffle(random_string)
+        block_generation_proof = random.randint(1,101)
+        nonce = random.randint(1,101)
+        status = type_of_status[random.randint(1,3)]
+        shuffle(type_of_status)
+        time_stamp = time.time()
         t_counter = i + 1
-        l = blockchain.chain
-        for my_block in l:
-            block_data = json.dumps(my_block.__dict__, sort_keys=True)
-            block_string = block_string + block_data 
-    return block_string
+        # for a_block in blockchain.chain:
+        #     block_data = json.dumps(a_block.__dict__)
+        #     block_string = block_string + block_data
+        block_chain_data = json.dumps(blockchain.chain.__dict__, sort_keys=True) 
+    return block_chain_data
 
 
 # endpoint to query unconfirmed transactions
