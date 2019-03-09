@@ -2,7 +2,7 @@ from Crypto import Random
 from Crypto.PublicKey import RSA
 from Crypto.Cipher import PKCS1_OAEP
 import base64
-# pip install pycryptodome
+# pip install pycryptodome #pip install pycrypto
 
 
 class Client(object):
@@ -21,7 +21,7 @@ class Client(object):
         public_key = private_key.publickey()
         return private_key, public_key
 
-    #Method to encrpyt and encode a message
+    #Method to encrpyt and sign a message
     @staticmethod
     def encrypt_message(a_message, public_key):
         #Set your public key as an encrpytor that will be using the PKCS1_OAEP cipher
@@ -32,7 +32,7 @@ class Client(object):
         encoded_encrypted_msg = base64.b64encode(encrypted_msg)
         return encoded_encrypted_msg
 
-    #Method to decrpyt and decode a message
+    #Method to decrpyt and verify a message
     @staticmethod
     def decrypt_message(encoded_encrypted_msg, private_key):
         #Set your public key as a decrpytor that will be using the PKCS1_OAEP cipher
@@ -50,6 +50,7 @@ print(private_key,public_key)
 message = b'This will be my test message'
 #Encrypt a message using the public key
 encoded = Client.encrypt_message(message, public_key)
+print(encoded)
 #Decrypt a message using the private key
 decoded = Client.decrypt_message(encoded, private_key)
 print(decoded)
