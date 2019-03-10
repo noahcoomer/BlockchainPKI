@@ -81,13 +81,17 @@ def new_block():
 
 
 #testing whether we can add a new block to the blockchain  
+#can now add multiple blocks in a chain
+#bug: it is not changing the block but adding the same block over and over again
 @app.route('/add_new_block', methods=['GET'])
 def add_new_block():
     block_string = ""
-    version = 0
+    version = 1
     id = 0
     transactions = new_transaction()
-    previous_hash = "" #no link to the previous block, currently this is a random hash, will be implemented later  
+    last_block = blockchain.last_block
+    consensus_hash = ''
+    previous_hash = last_block.hash #no link to the previous block, currently this is a random hash, will be implemented later  
     merkle_hash = "" #currently this is a random hash, will be implemented later
     block_generator_address = sha256( ("1234567".encode())).hexdigest()
     block_generation_proof = ""
@@ -111,8 +115,9 @@ def add_new_block():
             status,
             t_counter
         )
-        block_data = json.dumps({"block" : blocks.__dict__}, sort_keys=True)
-        blockchain.add_block(block_data, 'proof of work')
+        #consensus_hash = blocks.compute_hash
+        if blockchain.add_block(blocks, consensus_hash) == False:
+            return 'this is not working' 
         id = i + 1
         previous_hash = random.getrandbits(128)
         merkle_hash = random.getrandbits(128)
@@ -124,11 +129,10 @@ def add_new_block():
         shuffle(type_of_status)
         time_stamp = time.time()
         t_counter = i + 1
-        # for a_block in blockchain.chain:
-        #     block_data = json.dumps(a_block.__dict__)
-        #     block_string = block_string + block_data
-        block_chain_data = json.dumps(blockchain.chain.__dict__, sort_keys=True) 
-    return block_chain_data
+    for my_block in blockchain.chain:
+        block_data = json.dumps(my_block.__dict__)
+        block_string = block_string + block_data    
+    return block_string
 
 
 # endpoint to query unconfirmed transactions
