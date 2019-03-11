@@ -3,3 +3,4 @@ random
 errono
 socket
 pycrypto
+pycryptodome
