@@ -86,7 +86,7 @@ def get_genesis():
     #chain_test = blockchain.chain
     blockchain.create_genesis_block()
     chain_test = blockchain.last_block
-
+    
     b_data = json.dumps(chain_test.__dict__, sort_keys=True)
 
     return b_data 
