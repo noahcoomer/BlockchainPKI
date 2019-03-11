@@ -63,6 +63,7 @@ class Blockchain:
 
         block.hash = concensus_hash
         self.chain.append(block)
+        
         return True
 
     # Validate the concensus_hash of the block and verify if it satisfies

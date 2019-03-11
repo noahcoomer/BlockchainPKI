@@ -1,17 +1,18 @@
 # PKChain Client
 
 import socket
+import base64
 from Crypto import Random
 from Crypto.PublicKey import RSA
 from Crypto.Cipher import PKCS1_OAEP
 from Crypto.Cipher import Salsa20
-import base64
+
 
 class Client(object):
     blockchain = []
     sock = None
     port = 1234
-    host = '10.101.99.92'
+    host = 'localhost'
 
     
     def __init__(self):
@@ -37,6 +38,8 @@ class Client(object):
                 print("generate                           -Generate a public and private key pair.")
                 print("encrypt <public_key> <message>     -Encrypt a message with a public key.")
                 print("decrypt <private_key> <message>    -Decrypt a message with a private key.\n")
+            elif command[0] == 'exit':
+                break
             elif command[0] == 'generate':
                 private_key, public_key = self.generate_keys()
                 print()
@@ -48,7 +51,7 @@ class Client(object):
                 print("Implementation coming soon.")
             else:
                 print("\nCommand not understood. Type 'help' for a list of commands.\n")
-                
+         self.sock.close()       
         
     # connect to the p2p network
     def connect_to_network(self, host, port):
@@ -64,36 +67,55 @@ class Client(object):
         return []
 
 
-    # generate a public/private key pair
+    # Method to generate public and private keys using RSA key generation
+    @staticmethod
     def generate_keys(self):
+        # Specify the IP size of the key modulus
         modulus_lenght = 256 * 4
+        # Using a Random Number Generator and the modulus length as parameters
+        # For the RSA key generation, create your private key
         private_key = RSA.generate(modulus_lenght, Random.new().read)
+        # Generate a public key from the private key we just created
         public_key = private_key.publickey()
         return private_key, public_key
 
 
-    # encrypt a message with private key
-    def encrypt_private_key(self, a_message, private_key):
-        encryptor = Salsa20.new(private_key)
+    # Method to encrpyt and sign a message
+    @staticmethod
+    def encrypt_message(self, a_message, public_key):
+        # Set your public key as an encrpytor that will be using the PKCS1_OAEP cipher
+        encryptor = PKCS1_OAEP.new(public_key)
+        # Encrypt a message using your encryptor
         encrypted_msg = encryptor.encrypt(a_message)
+        # Encode your message using Base64 Encodings
         encoded_encrypted_msg = base64.b64encode(encrypted_msg)
         return encoded_encrypted_msg
 
 
-    # decrypt a message
-    def decrypt_public_key(self, encoded_encrypted_msg, public_key):
-        encryptor = Salsa20.new(public_key)
+    # Method to decrpyt and verify a message
+    @staticmethod
+    def decrypt_message(self, encoded_encrypted_msg, private_key):
+        # Set your public key as a decrpytor that will be using the PKCS1_OAEP cipher
+        decryptor = PKCS1_OAEP.new(private_key)
+        # Decrypt a message using your decryptor
         decoded_encrypted_msg = base64.b64decode(encoded_encrypted_msg)
-        decoded_decrypted_msg = encryptor.decrypt(decoded_encrypted_msg)
+        # Decode your message using Base64 Encodings
+        decoded_decrypted_msg = decryptor.decrypt(decoded_encrypted_msg)
         return decoded_decrypted_msg
 
 
-#private_key, public_key = Client.generate_keys()
-#print(private_key,public_key)
-#message = b'This will be my test message'
+if __name__ == "__main__":
+##    # Generates private and public key
+##    private_key, public_key = Client.generate_keys()
+##    print(private_key, public_key)
+##
+##    message = b'This will be my test message'
+##    # Encrypt a message using the public key
+##    encoded = Client.encrypt_message(message, public_key)
+##    print(encoded)
+##    # Decrypt a message using the private key
+##    decoded = Client.decrypt_message(encoded, private_key)
+##    print(decoded)
 
-#encoded = Client.encrypt_private_key(message, private_key)
-#decoded = Client.decrypt_public_key(encoded, public_key)
-#print(decoded)
+    example = Client()
 
-example = Client()
