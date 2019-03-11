@@ -3,7 +3,7 @@
 """
 from random import randint
 from threading import Thread
-from Crypto.Signature import PKCS1_v1_5
+# from Crypto.Signature import PKCS1_v1_5
 #from data import transaction
 
 import time
@@ -18,7 +18,7 @@ OUTCONN_THRESH = 8
 
 class Validator(object):
 
-    def __init__(self, name, bind_addr="0.0.0.0", bind_port=None):
+    def __init__(self, name, bind_addr="0.0.0.0", bind_port=None, bind=True):
         '''
             Initialize a Validator object
 
@@ -29,7 +29,9 @@ class Validator(object):
         self.name = name
         self.address = bind_addr, bind_port
         self.is_receiving = False
-        self._init_net()
+
+        if bind:
+            self._init_net()
 
     def _init_net(self):
         '''
@@ -94,25 +96,25 @@ class Validator(object):
         '''
         return self.address
 
-    def sign_message(self, private_key, message):
-        signer = PKCS1_v1_5.new(private_key)
-        sig = signer.sign(message)
-        return sig
+    # def sign_message(self, private_key, message):
+    #     signer = PKCS1_v1_5.new(private_key)
+    #     sig = signer.sign(message)
+    #     return sig
 
-    def verify_message(self, public_key, message):
-        verifier = PKCS1_v1_5.new(public_key)
-        verified = verifier.verify(message, sign_message())
-        assert verified, "Signature Verification Failed"
+    # def verify_message(self, public_key, message):
+    #     verifier = PKCS1_v1_5.new(public_key)
+    #     verified = verifier.verify(message, sign_message())
+    #     assert verified, "Signature Verification Failed"
 
-    def verify_transaction_signature(self, sender_address, signature, transaction):
-        """
-        Check that the provided signature corresponds to transaction
-        signed by the public key (sender_address)
-        """
-        public_key = RSA.importKey(binascii.unhexlify(sender_address))
-        verifier = PKCS1_v1_5.new(public_key)
-        h = SHA.new(str(transaction).encode('utf8'))
-        return verifier.verify(h, binascii.unhexlify(signature))
+    # def verify_transaction_signature(self, sender_address, signature, transaction):
+    #     """
+    #     Check that the provided signature corresponds to transaction
+    #     signed by the public key (sender_address)
+    #     """
+    #     public_key = RSA.importKey(binascii.unhexlify(sender_address))
+    #     verifier = PKCS1_v1_5.new(public_key)
+    #     h = SHA.new(str(transaction).encode('utf8'))
+    #     return verifier.verify(h, binascii.unhexlify(signature))
 
     def message(self, v, msg):
         '''
@@ -124,7 +126,7 @@ class Validator(object):
             v's net should be initialized and listening for incoming connections.
             msg must be an instance of str or bytes.
         '''
-        if self.net and v.net and self.is_receiving:
+        if self.net and self.is_receiving:
             # Connect to v's inbound net using self's outbound net
             address = v.address
             if not isinstance(msg, str):
@@ -143,7 +145,10 @@ class Validator(object):
                     except OSError as e:
                         # Except cases for if the send fails
                         if e.errno == errno.ECONNREFUSED:
-                            return -1, e
+                            print(e)
+                            # return -1, e
+                    except socket.error as e:
+                        print(e)
         else:
             raise Exception(
                 "The validator's net must be initialized and listening for connections")
@@ -152,10 +157,13 @@ class Validator(object):
         '''
             Closes sockets and stops the receive thread.
         '''
-        self.receive_thread.do_run = False  # tell receive_thread to stop running
-        self.receive_thread.join()  # wait for the thread to exit
-        self.is_receiving = False
-        self.net.close()  # close the inbound socket
+        if self.receive_thread:
+            self.receive_thread.do_run = False  # tell receive_thread to stop running
+            self.receive_thread.join()  # wait for the thread to exit
+            self.is_receiving = False
+
+        if self.net:
+            self.net.close()  # close the inbound socket
 
         print("Closed %s" % self.name)
 
@@ -163,21 +171,27 @@ class Validator(object):
 if __name__ == "__main__":
     # Test cases
     Alice = Validator(bind_port=1234, name="Alice")
-    Bob = Validator(bind_port=4321, name="Bob")
+    Bob = Validator(bind_addr="10.0.203.102",
+                    bind_port=4321, name="Bob", bind=False)
 
-    # Connect Alice to Bob, and send Bob a message.
-    # So, in this case, Bob is acting as the server and Alice the client.
-    Alice.message(Bob, "Hello! My name is Alice.")
-
-    # Alice can also act as a server and send messages to Bob.
-    Bob.message(Alice, "Hello, Alice. My name is Bob.")
-    Alice.message(Bob, "How are you, Bob?")
-
-    # The order of messages should be preserved.
-    for i in range(15):
-        Alice.message(Bob, "Message %d to Bob" % i)
-        Bob.message(Alice, "Message %d to Alice" % i)
-
-    # Close both Alice and Bob
     Alice.close()
-    Bob.close()
+
+    # Bob = Validator(bind_addr="", bind_port=4321, name="Noah", bind=False)
+    # Bob = Validator(bind_port=4321, name="Bob")
+
+    # # Connect Alice to Bob, and send Bob a message.
+    # # So, in this case, Bob is acting as the server and Alice the client.
+    # Alice.message(Bob, "Hello! My name is Alice.")
+
+    # # Alice can also act as a server and send messages to Bob.
+    # Bob.message(Alice, "Hello, Alice. My name is Bob.")
+    # Alice.message(Bob, "How are you, Bob?")
+
+    # # The order of messages should be preserved.
+    # for i in range(15):
+    #     Alice.message(Bob, "Message %d to Bob" % i)
+    #     Bob.message(Alice, "Message %d to Alice" % i)
+
+    # # Close both Alice and Bob
+    # Alice.close()
+    # Bob.close()
