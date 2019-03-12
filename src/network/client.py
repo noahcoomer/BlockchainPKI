@@ -43,15 +43,16 @@ class Client(object):
             elif command[0] == 'generate':
                 private_key, public_key = self.generate_keys()
                 print()
-                print("Your public key is: ", public_key, "\n")
-                print("Your private key is: ", private_key, "\n")
+                print("Your public key is:\n\n", public_key.export_key().decode(), "\n\n")
+                print("Your private key is:\n\n", private_key.export_key().decode(), "\n\n")
             elif command[0] == 'encrypt':
                 print("Implementation coming soon.")
             elif command == 'decrypt':
                 print("Implementation coming soon.")
             else:
                 print("\nCommand not understood. Type 'help' for a list of commands.\n")
-         self.sock.close()       
+
+        self.sock.close()       
         
     # connect to the p2p network
     def connect_to_network(self, host, port):
@@ -69,7 +70,7 @@ class Client(object):
 
     # Method to generate public and private keys using RSA key generation
     @staticmethod
-    def generate_keys(self):
+    def generate_keys():
         # Specify the IP size of the key modulus
         modulus_lenght = 256 * 4
         # Using a Random Number Generator and the modulus length as parameters
@@ -82,7 +83,7 @@ class Client(object):
 
     # Method to encrpyt and sign a message
     @staticmethod
-    def encrypt_message(self, a_message, public_key):
+    def encrypt_message(a_message, public_key):
         # Set your public key as an encrpytor that will be using the PKCS1_OAEP cipher
         encryptor = PKCS1_OAEP.new(public_key)
         # Encrypt a message using your encryptor
@@ -94,7 +95,7 @@ class Client(object):
 
     # Method to decrpyt and verify a message
     @staticmethod
-    def decrypt_message(self, encoded_encrypted_msg, private_key):
+    def decrypt_message(encoded_encrypted_msg, private_key):
         # Set your public key as a decrpytor that will be using the PKCS1_OAEP cipher
         decryptor = PKCS1_OAEP.new(private_key)
         # Decrypt a message using your decryptor
