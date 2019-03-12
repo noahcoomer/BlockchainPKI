@@ -82,16 +82,15 @@ def new_block():
 
 #testing whether we can add a new block to the blockchain  
 #can now add multiple blocks in a chain
-#bug: it is not changing the block but adding the same block over and over again
+#bug: can now add multiple blocks, however it is not generating the hash for each block 
 @app.route('/add_new_block', methods=['GET'])
 def add_new_block():
     block_string = ""
     version = 1
     id = 0
     transactions = new_transaction()
-    last_block = blockchain.last_block
-    consensus_hash = ''
-    previous_hash = last_block.hash #no link to the previous block, currently this is a random hash, will be implemented later  
+    my_last_block = blockchain.last_block
+    previous_hash = my_last_block.hash #grabs the hash of the last block 
     merkle_hash = "" #currently this is a random hash, will be implemented later
     block_generator_address = sha256( ("1234567".encode())).hexdigest()
     block_generation_proof = ""
@@ -113,15 +112,18 @@ def add_new_block():
             block_generation_proof,
             nonce,
             status,
-            t_counter
+            t_counter,
         )
-        #consensus_hash = blocks.compute_hash
-        if blockchain.add_block(blocks, consensus_hash) == False:
-            return 'this is not working' 
-        id = i + 1
-        previous_hash = random.getrandbits(128)
-        merkle_hash = random.getrandbits(128)
-        block_generator_address = sha256( (str(random_string).encode())).hexdigest()
+
+
+        #it is not generating a hash for the block
+        current_block_hash = blocks.compute_hash #create a hash for the block 
+        dict_current_hash = json.dumps(current_block_hash.__dict__) #turn it into a dictionary 
+        blockchain.add_block(blocks, dict_current_hash) #add the block to the chain
+        previous_hash = dict_current_hash # keep track of the previous block's hash 
+        id = i + 1 #increment the id for each block 
+        merkle_hash = random.getrandbits(128) #merkle root is random right now, but will be implemented later
+        block_generator_address = sha256( (str(random_string).encode())).hexdigest() 
         shuffle(random_string)
         block_generation_proof = random.randint(1,101)
         nonce = random.randint(1,101)
@@ -131,7 +133,7 @@ def add_new_block():
         t_counter = i + 1
     for my_block in blockchain.chain:
         block_data = json.dumps(my_block.__dict__)
-        block_string = block_string + block_data    
+        block_string = block_string + '\nblock : ' + block_data    
     return block_string
 
 
