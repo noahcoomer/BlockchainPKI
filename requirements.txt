@@ -1,5 +1,5 @@
 base64
 random
-errono
+errno
 socket
 pycrypto
