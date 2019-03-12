@@ -1,3 +1,7 @@
+# PKChain Client
+
+import socket
+import base64
 from Crypto import Random
 from Crypto.PublicKey import RSA
 from Crypto.Cipher import PKCS1_OAEP
@@ -24,13 +28,13 @@ class Client(object):
 
         # Poll for node connections and connect to the network
         # print("Connecting to the PKChain network...")
-        # # self.connect_to_network(self.host, self.port)
+        # self.connect_to_network(self.host, self.port)
 
         # Update the blockchain
         print("Updating blockchain. This may take a while.")
         self.blockchain = self.update_blockchain()
         print("Finished updating blockchain.")
-
+        
     def send_transaction(self, t):
         '''
             Send a transaction to the validator network
@@ -38,7 +42,7 @@ class Client(object):
             :param Transaction t: The transaction to send
         '''
         pass
-
+        
     def update_blockchain(self):
         '''
             Update blockchain to be current
