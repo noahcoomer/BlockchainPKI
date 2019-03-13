@@ -93,7 +93,7 @@ class Client(object):
         # Decode your message using Base64 Encodings
         decoded_decrypted_msg = decryptor.decrypt(decoded_encrypted_msg)
         #Dserialize message object
-        deserialized_message = pickle.dump(decoded_decrypted_msg)
+        deserialized_message = pickle.load(decoded_decrypted_msg)
         return deserialized_message
 
     def close(self):
