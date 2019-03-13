@@ -1,5 +1,3 @@
-base64
-random
-errno
-socket
+crypto
 pycrypto
+pycryptodome
