@@ -7,6 +7,8 @@ from Crypto.PublicKey import RSA
 from Crypto.Cipher import PKCS1_OAEP
 from Crypto.Cipher import Salsa20
 
+import pickle as pickle
+
 from net import Net
 
 import base64
@@ -34,7 +36,7 @@ class Client(object):
         print("Updating blockchain. This may take a while.")
         self.blockchain = self.update_blockchain()
         print("Finished updating blockchain.")
-        
+
     def send_transaction(self, t):
         '''
             Send a transaction to the validator network
@@ -42,7 +44,7 @@ class Client(object):
             :param Transaction t: The transaction to send
         '''
         pass
-        
+
     def update_blockchain(self):
         '''
             Update blockchain to be current
@@ -68,10 +70,12 @@ class Client(object):
         '''
             Encrypt and sign a message
         '''
+        #Serialize message object
+        serialized_message = pickle.dump(a_message)
         # Set your public key as an encrpytor that will be using the PKCS1_OAEP cipher
         encryptor = PKCS1_OAEP.new(public_key)
         # Encrypt a message using your encryptor
-        encrypted_msg = encryptor.encrypt(a_message)
+        encrypted_msg = encryptor.encrypt(serialized_message)
         # Encode your message using Base64 Encodings
         encoded_encrypted_msg = base64.b64encode(encrypted_msg)
         return encoded_encrypted_msg
@@ -81,13 +85,16 @@ class Client(object):
         '''
             Decrypt and verify a message
         '''
+
         # Set your public key as a decrpytor that will be using the PKCS1_OAEP cipher
         decryptor = PKCS1_OAEP.new(private_key)
         # Decrypt a message using your decryptor
         decoded_encrypted_msg = base64.b64decode(encoded_encrypted_msg)
         # Decode your message using Base64 Encodings
         decoded_decrypted_msg = decryptor.decrypt(decoded_encrypted_msg)
-        return decoded_decrypted_msg
+        #Dserialize message object
+        deserialized_message = pickle.dump(decoded_decrypted_msg)
+        return deserialized_message
 
     def close(self):
         '''
