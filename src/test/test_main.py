@@ -7,9 +7,9 @@ import requests
 import time
 import random
 from flask import Flask, request
-from data import transaction
-from data import blockchain
-from data import block
+from data_structs import transaction
+from data_structs import blockchain
+from data_structs import block
 from random import shuffle
 
 
@@ -58,85 +58,6 @@ def new_transaction():
     return tx_data
 
 
-#unit test to see whether we can create a block 
-@app.route('/new_block', methods=['GET'])
-def new_block():
-    blocks = block.Block(
-        version = 0,
-        id = 0,
-        transactions = new_transaction(),
-        previous_hash = '1231asdfas',
-        merkle_hash = 'asdfas112',
-        timestamp = time.time(),
-        block_generator_address = 'asdfs1as',
-        block_generation_proof = 'asdfsdwe1211',
-        nonce = 1,
-        status = 'accepted',
-        t_counter = 1,
-    )
-    
-    block_data = json.dumps(
-        {"block": blocks.__dict__}, sort_keys=True)
-    return block_data
-
-
-#testing whether we can add a new block to the blockchain  
-#can now add multiple blocks in a chain
-#bug: can now add multiple blocks, however it is not generating the hash for each block 
-@app.route('/add_new_block', methods=['GET'])
-def add_new_block():
-    block_string = ""
-    version = 1
-    id = 0
-    transactions = new_transaction()
-    my_last_block = blockchain.last_block
-    previous_hash = my_last_block.hash #grabs the hash of the last block 
-    merkle_hash = "" #currently this is a random hash, will be implemented later
-    block_generator_address = sha256( ("1234567".encode())).hexdigest()
-    block_generation_proof = ""
-    time_stamp = time.time()
-    nonce = 0
-    status = ''
-    t_counter = 1
-    type_of_status = ['accepted', 'rejected', 'proposed', 'confirmed']
-    random_string = [0,1,2,3,4,5,6,7,8,9,'a','b','c','d','e','f']
-    for i in range(5):
-        blocks = block.Block(
-            version,
-            id,
-            transactions,
-            previous_hash,
-            merkle_hash,
-            time_stamp,
-            block_generator_address,
-            block_generation_proof,
-            nonce,
-            status,
-            t_counter,
-        )
-
-
-        #it is not generating a hash for the block
-        current_block_hash = blocks.compute_hash #create a hash for the block 
-        dict_current_hash = json.dumps(current_block_hash.__dict__) #turn it into a dictionary 
-        blockchain.add_block(blocks, dict_current_hash) #add the block to the chain
-        previous_hash = dict_current_hash # keep track of the previous block's hash 
-        id = i + 1 #increment the id for each block 
-        merkle_hash = random.getrandbits(128) #merkle root is random right now, but will be implemented later
-        block_generator_address = sha256( (str(random_string).encode())).hexdigest() 
-        shuffle(random_string)
-        block_generation_proof = random.randint(1,101)
-        nonce = random.randint(1,101)
-        status = type_of_status[random.randint(1,3)]
-        shuffle(type_of_status)
-        time_stamp = time.time()
-        t_counter = i + 1
-    for my_block in blockchain.chain:
-        block_data = json.dumps(my_block.__dict__)
-        block_string = block_string + '\nblock : ' + block_data    
-    return block_string
-
-
 # endpoint to query unconfirmed transactions
 @app.route('/add_new_transactions', methods=['GET'])
 def add_new_transactions():
@@ -172,6 +93,112 @@ def add_new_transactions():
     tx_data = json.dumps( unconfirmed_transactions_test, sort_keys=True)
 
     return tx_data
+
+
+
+#unit test to see whether we can create a block 
+@app.route('/new_block', methods=['GET'])
+def new_block():
+    blocks = block.Block(
+        version = 0,
+        id = 0,
+        transactions = new_transaction(),
+        previous_hash = '1231asdfas',
+        merkle_hash = 'asdfas112',
+        timestamp = time.time(),
+        block_generator_address = 'asdfs1as',
+        block_generation_proof = 'asdfsdwe1211',
+        nonce = 1,
+        status = 'accepted',
+        t_counter = 1,
+    )
+    
+    block_data = json.dumps(
+        {"block": blocks.__dict__}, sort_keys=True)
+    return block_data
+
+
+#testing whether we can add blocks to the blockchain  
+#can now add multiple blocks in a chain
+@app.route('/add_new_block', methods=['GET'])
+def add_new_block():
+    block_string = ""
+    #set the block_number to 0 
+    block_number = 0
+    #set the version number of the block to 0
+    version = 0
+    #set the id number to 0 
+    id = 0
+    
+    #set the merkle hash. currently this will be random, will be implemented later
+    merkle_hash = random.getrandbits(128)
+    #set the block_generator_address, this is the public key of the client or validator 
+    block_generator_address = sha256( ("1234567".encode())).hexdigest()
+    #set the block_generation_proof will be random for now 
+    block_generation_proof = ""
+    #set nonce to be zero, but will be randomize later on 
+    nonce = 0
+    #set the status as propose for now 
+    status = 'proposed'
+    #set the amount of transactions to be 0 because the genesis block do not have any transactions
+    t_counter = 0
+    #set the type of statuses 
+    type_of_status = ['accepted', 'rejected', 'proposed', 'confirmed']
+    #this is to create random hash 
+    random_string = [0,1,2,3,4,5,6,7,8,9,'a','b','c','d','e','f']
+    #go through for loop to add the blocks to the chain 
+    for i in range(5):
+        #add transactions to the block will be 5 each time based on the add_new_transaction() function
+        transactions = add_new_transactions()
+        #update the amount of transaction in the current block
+        t_counter = t_counter + 5
+        #update previous hash 
+        my_last_block = blockchain.last_block
+        previous_hash = my_last_block.hash
+        #create a block
+        blocks = block.Block(
+            version,
+            id,
+            transactions,
+            previous_hash,
+            merkle_hash,
+            block_generator_address,
+            block_generation_proof,
+            nonce,
+            status,
+            t_counter,
+            timestamp = time.time()
+        )
+
+
+        #create a hash for the current block
+        current_block_hash = blocks.compute_hash()  
+        #add the block to the chain  
+        blockchain.add_block(blocks, current_block_hash)  
+        #update the id for the next block
+        id = i + 1
+        #update the merkle root for next block
+        merkle_hash = random.getrandbits(128) 
+        #update the block_generator_address
+        block_generator_address = sha256( (str(random_string).encode())).hexdigest() 
+        #randomize the random_string array
+        shuffle(random_string)
+        #randomize the block_generation_proof of the next block
+        block_generation_proof = random.randint(1,101)
+        #update the nonce value to be random 
+        nonce = random.randint(1,101)
+        #randomize the status of the next block
+        status = type_of_status[random.randint(1,3)]
+        #randomize the type_of_status for the next block
+        shuffle(type_of_status)
+    #go through all the blocks in the chain and add it to block_string to return because flask can't return a list of objects    
+    for my_block in blockchain.chain:
+        block_data = json.dumps(my_block.__dict__)
+        block_string = block_string + '\nblock ' + str(block_number) + ': ' + block_data    
+        block_number = block_number + 1
+    return block_string
+
+
 
 
 @app.route('/genesis_block', methods=['GET'])
