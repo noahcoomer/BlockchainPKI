@@ -12,11 +12,6 @@ from data_structs import blockchain
 from data_structs import block
 from random import shuffle
 
-
-'''
-testing: test for transaction, block, and blockchain 
-'''
-
 app = Flask(__name__)
 
 # the node's copy of blockchain
@@ -27,12 +22,10 @@ blockchain = blockchain.Blockchain()
 def hello_world():
     return 'Hello, World!'
 
-
 @app.route('/hello')
 def hello():
     return 'Hello, World'
 ################################################################
-
 
 
 @app.route('/new_transaction', methods=['GET'])
@@ -41,19 +34,14 @@ def new_transaction():
     #proof_string = json.dumps("000234567")
 
     transactions = transaction.Transaction(
-        version=0,
-        transaction_id=123456,
-        transaction_type="test",
-        tx_generator_address="1234567",
-        time_stamp=time.time(),
-       # public_key=sha256((block_string.encode()).hexdigest()),
-       # proof=sha256((proof_string.encode()).hexdigest()),
-        #inputs="\tPrevious tx: \n\t Index: 0 \n\t scriptSig: ",
-        #outputs="\tValue: 5000000000 \n\t scriptPubKey:",
-        lock_time=12334
+        version=0, 
+        transaction_id=123456, 
+        transaction_type="test", 
+        tx_generator_address="1234567", 
+        time_stamp = time.time(),
+        lock_time = 12334
     )
-    tx_data = json.dumps(
-        {"transaction": transactions.__dict__}, sort_keys=True)
+    tx_data = json.dumps({"transaction" : transactions.__dict__}, sort_keys=True)
 
     return tx_data
 
@@ -93,7 +81,6 @@ def add_new_transactions():
     tx_data = json.dumps( unconfirmed_transactions_test, sort_keys=True)
 
     return tx_data
-
 
 
 #unit test to see whether we can create a block 
@@ -199,14 +186,12 @@ def add_new_block():
     return block_string
 
 
-
-
 @app.route('/genesis_block', methods=['GET'])
 def get_genesis():
     #chain_test = blockchain.chain
     blockchain.create_genesis_block()
     chain_test = blockchain.last_block
-
+    
     b_data = json.dumps(chain_test.__dict__, sort_keys=True)
 
     return b_data 
