@@ -2,11 +2,11 @@ from hashlib import sha256
 import time
 import json
 import datetime as date
-
+import time
 
 class Block:
-    def __init__(self, version, id, transactions, previous_hash, merkle_hash, timestamp, block_generator_address,
-                 block_generation_proof, nonce, status, t_counter):
+    def __init__(self, version, id, transactions, previous_hash, merkle_hash,  block_generator_address,
+                 block_generation_proof, nonce, status, t_counter, timestamp):
         # A version number to track software protocol upgrades
         self.version = version
         self.id = id                                      # Block index or block height
@@ -15,7 +15,6 @@ class Block:
         self.previous_hash = previous_hash
         # A hash of the root of the Merkel tree of this block's transactions.
         self.merkle_hash = merkle_hash
-        self.timestamp = timestamp             # Creation time of this block
         # Public key of the Validator node proposed and broadcast the block
         self.block_generator_address = block_generator_address
         # Aggregated signature of Block Generator & Validator
@@ -27,6 +26,7 @@ class Block:
         self.status = status
         # Total number of transaction included in this block ???
         self.t_counter = t_counter
+        self.timestamp = time.time()             # Creation time of this block
         # The hash of the block header
         self.hash = self.compute_hash()
 

@@ -13,9 +13,9 @@ import base64
 
 
 class Client(object):
-    blockchain = []
-
-    def __init__(self, name, addr="0.0.0.0", port=1234):
+  blockchain = []  
+  
+  def __init__(self, name, addr="0.0.0.0", port=1234):
         '''
             Initialize a Client object
 
