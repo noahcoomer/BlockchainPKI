@@ -66,18 +66,18 @@ class Client(object):
 
       if len(name) < 1 or len(name) > 255:
         print("The name value must be between 1-255 characters.")
-        return
+        return -1
       
 ##      Use these lines to verify input
 ##      gen = self.verify_public_key(generator_public_key)
 ##      if not gen:
 ##        print("The generator public key is incorrectly formatted. Please try again.")
-##        return
+##        return -1
 ##
 ##      pub = self.verify_public_key(public_key)
 ##      if not pub:
 ##        print("The register public key is incorrectly formatted. Please try again.")
-##        return
+##        return -1
 
       inputs = { "REGISTER" : { name : public_key } }
       outputs = { "REGISTER" : { "register" : True } }
@@ -86,16 +86,43 @@ class Client(object):
       outputs = json.dumps(outputs)
       
       tx = transaction.Transaction(transaction_type="Standard", tx_generator_address=generator_public_key, inputs=inputs, outputs=outputs)
-      
       self.send_transaction(tx)
       return tx
   
 
     def pki_query(self, generator_public_key, name):
       '''
-
+        Query the blockchain for a public key given a name
       '''
-      tx = transaction.Transaction(tx_generator_address=generator_public_key)
+##      gen = self.verify_public_key(generator_public_key)
+##      if not gen:
+##        print("The generator public key is incorrectly formatted. Please try again.")
+##        return -1
+
+      public_key = None
+      for block in self.blockchain.chain:
+          for transaction in block.transactions:
+              inputs = json.loads(transaction.inputs)
+              for key in inputs.keys(): # should only be 1 top level key - still O(1)
+                  try:
+                      if name == inputs[key]["name"]:
+                          public_key = inputs[key]["public_key"]
+                  except:
+                    continue
+              if public_key:
+                break
+          if public_key:
+            break
+
+      inputs = { "QUERY" : { "name" : name } }
+      outputs = dict()
+      if public_key:
+          outputs = { "QUERY" : { "query" : True, "public_key" : public_key } }
+      else:
+          outputs = { "QUERY" : { "query" : False } }
+               
+      tx = transaction.Transaction(transaction_type="Standard", tx_generator_address=generator_public_key,
+                                   inputs=inputs, outputs=outputs)
 
       self.send_transaction(tx)
       return tx
