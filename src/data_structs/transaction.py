@@ -21,7 +21,7 @@ class Transaction:
 
     # constructor that set up the fields of the transaction
 
-    def __init__(self, version=0.1, transaction_id=None, transaction_type=None, tx_generator_address=None, inputs= None, outputs=None, lock_time=None, time_stamp=time.time()):
+    def __init__(self, version=0.1, transaction_id=None, transaction_type=None, tx_generator_address=None, inputs= None, outputs=None, lock_time=None, time_stamp=int(time.time())):
         self.version = version  # specifies which rules this transaction follows
         self.transaction_id = transaction_id  # transaction sequence #
         self.transaction_type = transaction_type  # Admin/Regular
