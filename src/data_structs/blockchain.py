@@ -4,6 +4,7 @@ import time
 
 class Blockchain:
     difficulty = 3
+    chain = []
 
     def __init__(self):
         self.unconfirmed_transactions = []

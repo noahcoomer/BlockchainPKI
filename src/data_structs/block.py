@@ -47,7 +47,6 @@ class Block:
             tx_hashes.append(tx_hash)
 
         tx_hashes = tuple(tx_hashes)
-            
         return hash((self.version, self.id, self.previous_hash, self.merkle_hash,
                      self.block_generator_address, self.block_generation_proof,
                      self.nonce, hash(tx_hashes), self.status, self.t_counter,

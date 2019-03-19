@@ -19,7 +19,7 @@ from data_structs import transaction
 
 
 class Client(object):
-    blockchain = []  
+    blockchain = None 
   
     def __init__(self, name, addr="0.0.0.0", port=1234):
         '''
@@ -53,7 +53,7 @@ class Client(object):
         '''
             Update blockchain to be current
         '''
-        return []
+        return None
 
 
     def pki_register(self, generator_public_key, name, public_key):
@@ -85,8 +85,8 @@ class Client(object):
       # Validate that the name is not already in the blockchain, break if found
       flag = False
       for block in self.blockchain.chain:
-          for transaction in block.transactions:
-              inp = json.loads(transaction.inputs)
+          for tx in block.transactions:
+              inp = json.loads(tx.inputs)
               for key in inp.keys():
                   try:
                       if name == inp[key]["name"]:
@@ -129,8 +129,8 @@ class Client(object):
       # Query blockchain, break if we find our public key
       public_key = None
       for block in self.blockchain.chain:
-          for transaction in block.transactions:
-              inputs = json.loads(transaction.inputs)
+          for tx in block.transactions:
+              inputs = json.loads(tx.inputs)
               for key in inputs.keys(): # should only be 1 top level key - still O(1)
                   try:
                       if name == inputs[key]["name"]:

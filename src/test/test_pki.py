@@ -33,7 +33,7 @@ TEST_KEY_3 = """-----BEGIN PUBLIC KEY-----
 
 def register_transaction():
     client_ = client.Client(name="test_client")
-    client.blockchain = create_test_chain()
+    client_.blockchain = create_test_chain()
     tx = client_.pki_register(TEST_KEY_1, "noah", TEST_KEY_1)
     if tx == -1:
         print("Exited with error.")
@@ -52,7 +52,6 @@ def query_transaction():
 
 def create_test_chain():
     chain = blockchain.Blockchain()
-    chain.create_genesis_block()
     
     inp_1 = { "REGISTER" : { "name": "noah_coomer", "public_key" : TEST_KEY_1 } }
     inp_1 = json.dumps(inp_1)
