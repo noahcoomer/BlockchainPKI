@@ -6,7 +6,7 @@ from network import client
 
 def register_transaction():
     client_ = client.Client(name="test_client")
-    tx = client_.pki_register("noah", "123")
+    tx = client_.pki_register("123", "noah", "123")
     print_transaction_info(tx)
 
 

@@ -61,10 +61,33 @@ class Client(object):
             Creates a register transaction
             :params: name - name to be associated with public key
                      public_key - the public key to be added
+            :return: tx - the transaction that was just generated
       '''
-      tx = transaction.Transaction()
+
+      if len(name) < 1 or len(name) > 255:
+        print("The name value must be between 1-255 characters.")
+        return
       
+##      Use these lines to verify input
+##      gen = self.verify_public_key(generator_public_key)
+##      if not gen:
+##        print("The generator public key is incorrectly formatted. Please try again.")
+##        return
+##
+##      pub = self.verify_public_key(public_key)
+##      if not pub:
+##        print("The register public key is incorrectly formatted. Please try again.")
+##        return
+
+      inputs = { "REGISTER" : { name : public_key } }
+      outputs = { "REGISTER" : { "register" : True } }
+
+      inputs = json.dumps(inputs)
+      outputs = json.dumps(outputs)
       
+      tx = transaction.Transaction(transaction_type="Standard", tx_generator_address=generator_public_key, inputs=inputs, outputs=outputs)
+      
+      self.send_transaction(tx)
       return tx
   
 
@@ -72,8 +95,9 @@ class Client(object):
       '''
 
       '''
-      tx = transaction.Transaction()
+      tx = transaction.Transaction(tx_generator_address=generator_public_key)
 
+      self.send_transaction(tx)
       return tx
 
 
@@ -83,7 +107,7 @@ class Client(object):
       '''
       tx = transaction.Transaction()
 
-      return tx
+      self.send_transaction(tx)
 
 
     def pki_update(self, name, old_public_key, new_public_key):
@@ -92,7 +116,7 @@ class Client(object):
       '''
       tx = transaction.Transaction()
 
-      return tx
+      self.send_transaction(tx)
 
 
     def pki_revoke(self, public_key, private_key):
@@ -101,7 +125,7 @@ class Client(object):
       '''
       tx = transaction.Transaction()
 
-      return tx
+      self.send_transaction(tx)
     
 
     @staticmethod
