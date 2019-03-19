@@ -52,7 +52,7 @@ def add_new_transactions():
 
     unconfirmed_transactions_test = blockchain.unconfirmed_transactions
 
-    version = 0 
+    version = 0.1 
     t_id = 123456
     transaction_type="Admin"
     tx_generator_address= sha256( ("1234567".encode())).hexdigest() 
@@ -61,10 +61,10 @@ def add_new_transactions():
 
     for i in range(5):
         transactions = transaction.Transaction(
-        version, 
-        t_id, 
-        transaction_type, 
-        tx_generator_address, 
+        version = version, 
+        transaction_id = t_id, 
+        transaction_type = transaction_type, 
+        tx_generator_address = tx_generator_address, 
         time_stamp = time.time(),
         lock_time = 12334
     )

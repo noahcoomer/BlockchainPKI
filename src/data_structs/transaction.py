@@ -47,3 +47,12 @@ class Transaction:
 
     def output(self):
         pass
+
+
+    def __hash__(self):
+        return hash((self.version, self.transaction_id, self.transaction_type,
+                     self.tx_generator_address, self.inputs, self.outputs, self.lock_time,
+                     self.time_stamp))
+    
+
+        

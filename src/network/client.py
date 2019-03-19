@@ -64,27 +64,52 @@ class Client(object):
             :return: tx - the transaction that was just generated
       '''
 
+      # input verification
       if len(name) < 1 or len(name) > 255:
         print("The name value must be between 1-255 characters.")
         return -1
       
-##      Use these lines to verify input
-##      gen = self.verify_public_key(generator_public_key)
-##      if not gen:
-##        print("The generator public key is incorrectly formatted. Please try again.")
-##        return -1
-##
-##      pub = self.verify_public_key(public_key)
-##      if not pub:
-##        print("The register public key is incorrectly formatted. Please try again.")
-##        return -1
+      # public key verification
+      gen = self.verify_public_key(generator_public_key)
+      if not gen:
+        print("The generator public key is incorrectly formatted. Please try again.")
+        return -1
+
+      pub = self.verify_public_key(public_key)
+      if not pub:
+        print("The register public key is incorrectly formatted. Please try again.")
+        return -1
 
       inputs = { "REGISTER" : { name : public_key } }
-      outputs = { "REGISTER" : { "register" : True } }
 
+      # Validate that the name is not already in the blockchain, break if found
+      flag = False
+      for block in self.blockchain.chain:
+          for transaction in block.transactions:
+              inp = json.loads(transaction.inputs)
+              for key in inp.keys():
+                  try:
+                      if name == inp[key]["name"]:
+                          flag = True
+                          break
+                  except:
+                    continue
+              if flag == True:
+                  break
+          if flag == True:
+              break
+
+      outputs = dict()                    
+      if not flag:
+          outputs = { "REGISTER" : { "register" : True } }
+      else:
+          outputs = { "REGISTER" : { "register" : False } }
+
+      # dump to JSON
       inputs = json.dumps(inputs)
       outputs = json.dumps(outputs)
-      
+
+      # send the transaction and return it for std.out
       tx = transaction.Transaction(transaction_type="Standard", tx_generator_address=generator_public_key, inputs=inputs, outputs=outputs)
       self.send_transaction(tx)
       return tx
@@ -94,11 +119,14 @@ class Client(object):
       '''
         Query the blockchain for a public key given a name
       '''
+
+      # input verification
 ##      gen = self.verify_public_key(generator_public_key)
 ##      if not gen:
 ##        print("The generator public key is incorrectly formatted. Please try again.")
 ##        return -1
 
+      # Query blockchain, break if we find our public key
       public_key = None
       for block in self.blockchain.chain:
           for transaction in block.transactions:
@@ -113,13 +141,17 @@ class Client(object):
                 break
           if public_key:
             break
-
+      
       inputs = { "QUERY" : { "name" : name } }
       outputs = dict()
       if public_key:
           outputs = { "QUERY" : { "query" : True, "public_key" : public_key } }
       else:
           outputs = { "QUERY" : { "query" : False } }
+
+      # dump to JSON
+      inputs = json.dumps(inputs)
+      outputs = json.dumps(outputs)                       
                
       tx = transaction.Transaction(transaction_type="Standard", tx_generator_address=generator_public_key,
                                    inputs=inputs, outputs=outputs)
@@ -238,16 +270,20 @@ if __name__ == "__main__":
     while True:
         command = input(">>> ").split(" ")
         if command[0] == 'help':
-            print()
-            print(
-                "generate                           -Generate a public and private key pair.")
-            print(
-                "encrypt <public_key> <message>     -Encrypt a message with a public key.")
-            print(
-                "decrypt <private_key> <message>    -Decrypt a message with a private key.\n")
+            print("Transactional Functions:\n\n ")
+            print("register                         -Register a name and public key on the blockchain.")
+            print("query                            -Query for a public key given a name.\n\n")
+            print("Local Functions:\n\n")
+            print("generate                         -Generate a public and private key pair.")
+            print("encrypt <public_key> <message>   -Encrypt a message with a public key.")
+            print("decrypt <private_key> <message>  -Decrypt a message with a private key.\n\n")
         elif command[0] == 'exit':
             Client1.close()
             break
+        elif command[0] == 'register':
+            pass
+        elif command[0] == 'query':
+            pass
         elif command[0] == 'generate':
             private_key, public_key = Client1.generate_keys()
             print()
