@@ -31,19 +31,22 @@ TEST_KEY_3 = """-----BEGIN PUBLIC KEY-----
                 -----END PUBLIC KEY-----
              """
 
-def register_transaction():
-    client_ = client.Client(name="test_client")
-    client_.blockchain = create_test_chain()
-    tx = client_.pki_register(TEST_KEY_1, "noah", TEST_KEY_1)
+def register_transaction(name):
+    _client = client.Client(name="test_client")
+    _client.blockchain = create_test_chain()
+    #print(_client.blockchain.last_block.transactions)
+    tx = _client.pki_register(TEST_KEY_1, name, TEST_KEY_1)
     if tx == -1:
         print("Exited with error.")
         return
     print_transaction_info(tx)
 
 
-def query_transaction():
-    client_ = client.Client(name="test_client")
-    tx = client_.pki_query("123", "noah")
+def query_transaction(query):
+    _client = client.Client(name="test_client")
+    _client.blockchain = create_test_chain()
+    #print(_client.blockchain.last_block.transactions)
+    tx = _client.pki_query(TEST_KEY_1, query)
     if tx == -1:
         print("Exited with error.")
         return
@@ -66,9 +69,12 @@ def create_test_chain():
     tx_3 = transaction.Transaction(inputs=inp_3)
 
     txs = [tx_1, tx_2, tx_3]
-    new_block = block.Block(transactions=txs)
-    chain.add_block(new_block, "1234")
-    return chain
+    new_block = block.Block(transactions=txs, previous_hash=chain.last_block.hash)
+    success = chain.add_block(new_block, "0")
+    if success:
+        return chain
+    else:
+        print("Error")
     
 
 def print_transaction_info(tx):
@@ -85,7 +91,17 @@ def print_transaction_info(tx):
 
 
 def main():
-    register_transaction()
+    print("Registration transaction tests:\n\n")
+    # Passing registration transaction
+    register_transaction("unknown")
+    # Failing registration transaction
+    register_transaction("noah_coomer")
+
+    print("Query transaction tests:\n\n")
+    # Passing query transaction
+    query_transaction("lebron_james")
+    # Failing query transaction
+    query_transaction("noah")
 
 
 if __name__ == '__main__':

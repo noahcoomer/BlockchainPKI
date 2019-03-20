@@ -57,7 +57,8 @@ class Blockchain:
 
         # Compare the hash of last block andthe previous_hash of the new block
         if previous_hash_temp != block.previous_hash:
-           return False
+            print("hi")
+            return False
 
         #if self.is_valid_concensus_hash(block, concensus_hash) != True:
          #   return False

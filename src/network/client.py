@@ -10,7 +10,10 @@ from Crypto.PublicKey import RSA
 from Crypto.Cipher import PKCS1_OAEP
 from Crypto.Cipher import Salsa20
 
-from .net import Net
+try:
+    from .net import Net
+except:
+    from net import Net
 
 # This needs to be the last imported line
 import sys
@@ -100,10 +103,15 @@ class Client(object):
               break
 
       outputs = dict()                    
-      if not flag:
+      if flag == False:
           outputs = { "REGISTER" : { "register" : True } }
       else:
-          outputs = { "REGISTER" : { "register" : False } }
+          outputs = { "REGISTER" :
+                        {
+                            "success" : False,
+                            "message": "This name is already registered."
+                        }
+                    }
 
       # dump to JSON
       inputs = json.dumps(inputs)
@@ -121,10 +129,10 @@ class Client(object):
       '''
 
       # input verification
-##      gen = self.verify_public_key(generator_public_key)
-##      if not gen:
-##        print("The generator public key is incorrectly formatted. Please try again.")
-##        return -1
+      gen = self.verify_public_key(generator_public_key)
+      if not gen:
+        print("The generator public key is incorrectly formatted. Please try again.")
+        return -1
 
       # Query blockchain, break if we find our public key
       public_key = None
@@ -147,7 +155,12 @@ class Client(object):
       if public_key:
           outputs = { "QUERY" : { "query" : True, "public_key" : public_key } }
       else:
-          outputs = { "QUERY" : { "query" : False } }
+          outputs = { "QUERY" :
+                          {
+                              "success" : False,
+                              "message" : "Name not found."
+                          }
+                    }
 
       # dump to JSON
       inputs = json.dumps(inputs)
@@ -239,7 +252,7 @@ class Client(object):
         key = RSA.import_key(public_key)
         return key
       except ValueError:
-        return False
+        return None
       
 
     def close(self):
