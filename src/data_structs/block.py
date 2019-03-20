@@ -38,3 +38,5 @@ class Block:
         block_string = json.dumps(self.__dict__, sort_keys=True)
         # Encode the block's data using sha256 hash function
         return sha256(block_string.encode()).hexdigest()
+
+    
