@@ -70,7 +70,7 @@ def create_test_chain():
 
     txs = [tx_1, tx_2, tx_3]
     new_block = block.Block(transactions=txs, previous_hash=chain.last_block.hash)
-    success = chain.add_block(new_block, "0")
+    success = chain.add_block(new_block, new_block.hash)
     if success:
         return chain
     else:

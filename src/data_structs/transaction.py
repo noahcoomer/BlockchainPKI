@@ -21,7 +21,7 @@ class Transaction:
 
     # constructor that set up the fields of the transaction
 
-    def __init__(self, version=0.1, transaction_id=None, transaction_type=None, tx_generator_address=None, inputs= None, outputs=None, lock_time=None, time_stamp=int(time.time())):
+    def __init__(self, version=0.1, transaction_id=None, transaction_type=None, tx_generator_address=None, inputs= None, outputs=None, lock_time=None):
         self.version = version  # specifies which rules this transaction follows
         self.transaction_id = transaction_id  # transaction sequence #
         self.transaction_type = transaction_type  # Admin/Regular
@@ -31,7 +31,7 @@ class Transaction:
         self.outputs = outputs  # request result
         # a unix timestamp or block number-locktime defines the earlier time that a transaction can be added
         self.lock_time = lock_time
-        self.time_stamp = time_stamp  # transaction generation time
+        self.time_stamp = int(time.time())  # transaction generation time
         # self.username = username  # username for the client
         # self.public_key = public_key  # public key of the client
         # self.proof = proof  # proof

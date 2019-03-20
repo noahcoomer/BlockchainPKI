@@ -74,10 +74,11 @@ class Blockchain:
         #if self.is_valid_concensus_hash(block, concensus_hash) != True:
          #   return False
 
-        block.hash = consensus_hash
-        self.chain.append(block)
-        
-        return True
+        if block.hash == consensus_hash:
+            self.chain.append(block)
+            return True
+        else:
+            return False
 
     # Validate the concensus_hash of the block and verify if it satisfies
     #  some require criterias (etc. difficulty)
