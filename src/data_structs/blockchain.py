@@ -17,12 +17,12 @@ class Blockchain:
             transactions=[],
             previous_hash="0",
             merkle_hash="",
-            timestamp=time.time(),
             block_generator_address="",
             block_generation_proof="",
             nonce=0,
             status="confirmed",
-            t_counter=0
+            t_counter=0,
+            timestamp=time.time()
         )
         genesis_block.hash = genesis_block.compute_hash()
         self.chain.append(genesis_block)
@@ -56,10 +56,10 @@ class Blockchain:
 
         # Compare the hash of last block andthe previous_hash of the new block
         if previous_hash_temp != block.previous_hash:
-            return False
+           return False
 
-        if self.is_valid_concensus_hash(block, concensus_hash) != True:
-            return False
+        #if self.is_valid_concensus_hash(block, concensus_hash) != True:
+         #   return False
 
         block.hash = concensus_hash
         self.chain.append(block)
@@ -71,7 +71,7 @@ class Blockchain:
 
     def is_valid_concensus_hash(self, block, concensus_hash):
         # The 'difficulty' is put here temporary before finding a new way for constraint
-        return (concensus_hash.startwith('0' * Blockchain.difficulty) and
+        return (concensus_hash.startswith('0' * Blockchain.difficulty) and
                 block.compute_hash() == concensus_hash)
 
     # Add new transaction into the unconfirmed transactions pool
