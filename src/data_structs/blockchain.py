@@ -1,6 +1,15 @@
 from .block import Block
+from .transaction import Transaction
+import json
 import time
 
+NOAH_PUBLIC_KEY = """-----BEGIN PUBLIC KEY-----
+                     MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDQYD1K9cQt+FLYL4WsiiuDhsE6
+                     ut40BWhbkpk0yIfuZX13bg4sQ1aL5AKFswzvEGMM9ACNg6AYh2DOdWDKEkQVGLdD
+                     PRqtSCORDX+l74BWxwhYIUPf4nqiKHF0/D5QF5cNvw7aSrbZxtc5AlPHhVziQgVW
+                     0NBEFXgdCpJC1BTjWQIDAQAB
+                     -----END PUBLIC KEY----- 
+                  """
 
 class Blockchain:
     difficulty = 3
@@ -12,20 +21,23 @@ class Blockchain:
         self.create_genesis_block()
 
     def create_genesis_block(self):
+        inputs_1 = { "REGISTER": { "name" : "Noah Coomer", "public_key": NOAH_PUBLIC_KEY } }
+        inputs_1 = json.dumps(inputs_1)
+        outputs_1 = { "REGISTER": { "success": True } }
+        outputs_1 = json.dumps(outputs_1)
+
+        tx_1 = Transaction(transaction_id=1, tx_generator_address=NOAH_PUBLIC_KEY, 
+                           inputs=inputs_1, outputs=outputs_1, lock_time=int(time.time()))
         genesis_block = Block(
             version=0,
             id=0,
-            transactions=[],
-            previous_hash="0",
-            merkle_hash="",
+            transactions=[tx_1],
+            previous_hash="",
             block_generator_address="",
             block_generation_proof="",
             nonce=0,
-            status="confirmed",
-            t_counter=0,
-            timestamp=time.time()
+            status="Confirmed"
         )
-        genesis_block.hash = genesis_block.compute_hash()
         self.chain.append(genesis_block)
 
     # last_block() returns the last block of the chain
@@ -52,7 +64,7 @@ class Blockchain:
                           The add_block() also needs to verify that the concensus_hash is match 
                           with the block hash by using the is_valid_concensus_hash(...) method'''
 
-    def add_block(self, block, concensus_hash):
+    def add_block(self, block, consensus_hash):
         previous_hash_temp = self.last_block.hash
 
         # Compare the hash of last block andthe previous_hash of the new block
@@ -62,7 +74,7 @@ class Blockchain:
         #if self.is_valid_concensus_hash(block, concensus_hash) != True:
          #   return False
 
-        block.hash = concensus_hash
+        block.hash = consensus_hash
         self.chain.append(block)
         
         return True
@@ -92,13 +104,10 @@ class Blockchain:
             id=last_block.id + 1,
             transactions=self.unconfirmed_transactions,
             previous_hash=last_block.hash,
-            merkle_hash=-1,  # Uncertain...
-            timestamp=time.time(),
             block_generator_address="",
             block_generation_proof="",
             nonce=0,
             status="proposed",
-            t_counter=len(self.unconfirmed_transactions)
         )
 
         '''

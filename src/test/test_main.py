@@ -91,13 +91,10 @@ def new_block():
         id = 0,
         transactions = new_transaction(),
         previous_hash = '1231asdfas',
-        merkle_hash = 'asdfas112',
-        timestamp = time.time(),
         block_generator_address = 'asdfs1as',
         block_generation_proof = 'asdfsdwe1211',
         nonce = 1,
         status = 'accepted',
-        t_counter = 1,
     )
     
     block_data = json.dumps(
@@ -153,13 +150,11 @@ def add_new_block():
             block_generation_proof,
             nonce,
             status,
-            t_counter,
-            timestamp = time.time()
         )
 
 
         #create a hash for the current block
-        current_block_hash = blocks.compute_hash()  
+        #current_block_hash = blocks.compute_hash()  
         #add the block to the chain  
         blockchain.add_block(blocks, current_block_hash)  
         #update the id for the next block
