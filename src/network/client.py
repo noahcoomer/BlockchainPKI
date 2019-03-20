@@ -2,20 +2,29 @@
 
 import socket
 import base64
+import json
+import time
+
 from Crypto import Random
 from Crypto.PublicKey import RSA
 from Crypto.Cipher import PKCS1_OAEP
 from Crypto.Cipher import Salsa20
 
-from net import Net
+try:
+    from .net import Net
+except:
+    from net import Net
 
-import base64
+# This needs to be the last imported line
+import sys
+sys.path.append('../')
+from data_structs import transaction
 
 
 class Client(object):
-  blockchain = []  
+    blockchain = None 
   
-  def __init__(self, name, addr="0.0.0.0", port=1234):
+    def __init__(self, name, addr="0.0.0.0", port=1234):
         '''
             Initialize a Client object
 
@@ -35,11 +44,11 @@ class Client(object):
         self.blockchain = self.update_blockchain()
         print("Finished updating blockchain.")
         
-    def send_transaction(self, t):
+    def send_transaction(self, tx):
         '''
             Send a transaction to the validator network
 
-            :param Transaction t: The transaction to send
+            :param Transaction tx: The transaction to send
         '''
         pass
         
@@ -47,7 +56,152 @@ class Client(object):
         '''
             Update blockchain to be current
         '''
-        return []
+        return None
+
+
+    def pki_register(self, generator_public_key, name, public_key):
+        '''
+            Creates a register transaction
+            :params: name - name to be associated with public key
+                     public_key - the public key to be added
+            :return: tx - the transaction that was just generated
+        '''
+
+      # input verification
+        if len(name) < 1 or len(name) > 255:
+            print("The name value must be between 1-255 characters.")
+            return -1
+      
+      # public key verification
+        gen = self.verify_public_key(generator_public_key)
+        if not gen:
+            print("The generator public key is incorrectly formatted. Please try again.")
+            return -1
+
+        pub = self.verify_public_key(public_key)
+        if not pub:
+            print("The register public key is incorrectly formatted. Please try again.")
+            return -1
+
+        inputs = { "REGISTER" : { name : public_key } }
+
+      # Validate that the name is not already in the blockchain, break if found
+        flag = False
+        for block in self.blockchain.chain:
+            for tx in block.transactions:
+                inp = json.loads(tx.inputs)
+                for key in inp.keys():
+                    try:
+                        if name == inp[key]["name"]:
+                            flag = True
+                            break
+                    except:
+                        continue
+                if flag == True:
+                    break
+            if flag == True:
+                break
+
+        outputs = dict()                    
+        if flag == False:
+            outputs = { "REGISTER" : { "register" : True } }
+        else:
+            outputs = { "REGISTER" :
+                            {
+                                "success" : False,
+                                "message": "This name is already registered."
+                            }
+                      }
+
+        # dump to JSON
+        inputs = json.dumps(inputs)
+        outputs = json.dumps(outputs)
+
+        # send the transaction and return it for std.out
+        tx = transaction.Transaction(transaction_type="Standard", tx_generator_address=generator_public_key, inputs=inputs, outputs=outputs)
+        self.send_transaction(tx)
+        return tx
+  
+
+    def pki_query(self, generator_public_key, name):
+        '''
+            Query the blockchain for a public key given a name
+        '''
+
+        # input verification
+        gen = self.verify_public_key(generator_public_key)
+        if not gen:
+            print("The generator public key is incorrectly formatted. Please try again.")
+            return -1
+
+        # Query blockchain, break if we find our public key
+        public_key = None
+        for block in self.blockchain.chain:
+            for tx in block.transactions:
+                inputs = json.loads(tx.inputs)
+                for key in inputs.keys(): # should only be 1 top level key - still O(1)
+                    try:
+                        if name == inputs[key]["name"]:
+                            public_key = inputs[key]["public_key"]
+                    except:
+                        continue
+                if public_key:
+                    break
+            if public_key:
+                break
+        
+        inputs = { "QUERY" : { "name" : name } }
+        outputs = dict()
+        if public_key:
+            outputs = { "QUERY" : { "query" : True, "public_key" : public_key } }
+        else:
+            outputs = { "QUERY" :
+                            {
+                                "success" : False,
+                                "message" : "Name not found."
+                            }
+                      }
+
+        # dump to JSON
+        inputs = json.dumps(inputs)
+        outputs = json.dumps(outputs)                       
+                
+        tx = transaction.Transaction(transaction_type="Standard", tx_generator_address=generator_public_key,
+                                    inputs=inputs, outputs=outputs)
+
+        self.send_transaction(tx)
+        return tx
+
+
+    def pki_validate(self, generator_public_key, name, public_key):
+        '''
+
+        '''
+        tx = transaction.Transaction()
+
+        self.send_transaction(tx)
+        return tx
+
+
+    def pki_update(self, name, old_public_key, new_public_key):
+        '''
+
+        '''
+        tx = transaction.Transaction()
+
+        self.send_transaction(tx)
+        return tx
+
+
+    def pki_revoke(self, public_key, private_key):
+        '''
+
+        '''
+        tx = transaction.Transaction()
+
+        self.send_transaction(tx)
+        return tx
+    
 
     @staticmethod
     def generate_keys():
@@ -89,6 +243,21 @@ class Client(object):
         decoded_decrypted_msg = decryptor.decrypt(decoded_encrypted_msg)
         return decoded_decrypted_msg
 
+
+    @staticmethod
+    def verify_public_key(public_key):
+        '''
+            Verify a public key is correctly formatted by making an RSA key object
+            :params: public_key - a string or byte string of the public key to imported
+                    passphrase - if the key requires a passphrase use it, otherwise passphrase should be None
+        '''
+        try:
+            key = RSA.import_key(public_key)
+            return key
+        except ValueError:
+            return None
+      
+
     def close(self):
         '''
             Close the client and its net
@@ -117,16 +286,20 @@ if __name__ == "__main__":
     while True:
         command = input(">>> ").split(" ")
         if command[0] == 'help':
-            print()
-            print(
-                "generate                           -Generate a public and private key pair.")
-            print(
-                "encrypt <public_key> <message>     -Encrypt a message with a public key.")
-            print(
-                "decrypt <private_key> <message>    -Decrypt a message with a private key.\n")
+            print("Transactional Functions:\n\n ")
+            print("register                         -Register a name and public key on the blockchain.")
+            print("query                            -Query for a public key given a name.\n\n")
+            print("Local Functions:\n\n")
+            print("generate                         -Generate a public and private key pair.")
+            print("encrypt <public_key> <message>   -Encrypt a message with a public key.")
+            print("decrypt <private_key> <message>  -Decrypt a message with a private key.\n\n")
         elif command[0] == 'exit':
             Client1.close()
             break
+        elif command[0] == 'register':
+            pass
+        elif command[0] == 'query':
+            pass
         elif command[0] == 'generate':
             private_key, public_key = Client1.generate_keys()
             print()

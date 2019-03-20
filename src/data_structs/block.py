@@ -5,8 +5,8 @@ import datetime as date
 import time
 
 class Block:
-    def __init__(self, version, id, transactions, previous_hash, merkle_hash,  block_generator_address,
-                 block_generation_proof, nonce, status, t_counter, timestamp):
+    def __init__(self, version=0.1, id=None, transactions=[], previous_hash=None, block_generator_address=None,
+                 block_generation_proof=None, nonce=None, status=None):
         # A version number to track software protocol upgrades
         self.version = version
         self.id = id                                      # Block index or block height
@@ -14,7 +14,7 @@ class Block:
         # A reference to the previous (parent) block in the chain
         self.previous_hash = previous_hash
         # A hash of the root of the Merkel tree of this block's transactions.
-        self.merkle_hash = merkle_hash
+        self.merkle_hash = self.compute_merkle_root()
         # Public key of the Validator node proposed and broadcast the block
         self.block_generator_address = block_generator_address
         # Aggregated signature of Block Generator & Validator
@@ -25,16 +25,24 @@ class Block:
         # Block status - Proposed/Confirmed/Rejected/"Accepted??"
         self.status = status
         # Total number of transaction included in this block ???
-        self.t_counter = t_counter
-        self.timestamp = time.time()             # Creation time of this block
+        self.t_counter = len(transactions)
+        self.timestamp = int(time.time())            # Creation time of this block
         # The hash of the block header
-        self.hash = self.compute_hash()
+        self.hash = hash(self)
 
-    # Return the block hash
+    # Return the merkle root
+    def compute_merkle_root(self):
+        tx_hashes = []
+        for tx in self.transactions:
+            tx_hash = hash(tx)
+            tx_hashes.append(tx_hash)
 
-    def compute_hash(self):
-        # self.__dict__ is used to store the Block object's attributes into dictionary
-        # json.dumps convert the data in the dictionary to JSON form
-        block_string = json.dumps(self.__dict__, sort_keys=True)
-        # Encode the block's data using sha256 hash function
-        return sha256(block_string.encode()).hexdigest()
+        tx_hashes = tuple(tx_hashes)
+        return hash(tx_hashes)
+
+
+    def __hash__(self):
+        return hash((self.version, self.id, self.previous_hash, self.merkle_hash,
+                     self.block_generator_address, self.block_generation_proof,
+                     self.nonce, self.status, self.t_counter,
+                     self.timestamp))
