@@ -36,11 +36,13 @@ def register_transaction(name):
     _client.blockchain = create_test_chain()
     #print(_client.blockchain.last_block.transactions)
     tx = _client.pki_register(TEST_KEY_1, name, TEST_KEY_1)
-    if tx == -1:
-        print("Exited with error.")
-        return
-    print_transaction_info(tx)
-    return tx
+    try:
+        if tx == -1:
+            print("Exited with error.")
+            return
+    except:
+        #print_transaction_info(tx)
+        return tx
 
 
 def query_transaction(query):
@@ -48,11 +50,13 @@ def query_transaction(query):
     _client.blockchain = create_test_chain()
     #print(_client.blockchain.last_block.transactions)
     tx = _client.pki_query(TEST_KEY_1, query)
-    if tx == -1:
-        print("Exited with error.")
-        return
-    print_transaction_info(tx)
-    return tx
+    try:
+        if tx == -1:
+            print("Exited with error.")
+            return
+    except:
+        #print_transaction_info(tx)
+        return tx
 
 
 def create_test_chain():

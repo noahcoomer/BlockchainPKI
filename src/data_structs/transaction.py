@@ -56,6 +56,13 @@ class Transaction:
     def __hash__(self):
         return hash((self.version, self.transaction_type, self.tx_generator_address,
                      self.inputs, self.outputs, self.lock_time, self.time_stamp))
+
+
+    def __eq__(self, other):
+        return self.version == other.version and self.transaction_type == other.transaction_type \
+               and self.inputs == other.inputs and self.outputs == other.outputs and \
+               self.lock_time == other.lock_time and self.time_stamp == other.time_stamp
+
     
 
         
