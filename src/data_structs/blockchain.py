@@ -27,9 +27,9 @@ class Blockchain:
         outputs_1 = json.dumps(outputs_1)
         tx_1 = Transaction(tx_generator_address=NOAH_PUBLIC_KEY, 
                            inputs=inputs_1, outputs=outputs_1, lock_time=int(time.time()))
-                           
+
         genesis_block = Block(
-            version=0,
+            version=0.1,
             id=0,
             transactions=[tx_1],
             previous_hash="",
