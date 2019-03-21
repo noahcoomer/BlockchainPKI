@@ -1,4 +1,5 @@
 from random import randint
+from threading import Thread
 # from Crypto.Signature import PKCS1_v1_5
 # from data import transaction
 
@@ -27,6 +28,11 @@ class Validator(object):
         '''
         self.name = name
         self.net = Net(name=name, addr=addr, port=port, bind=bind)
+        
+        recv_thread = Thread(target=self.receive)
+        send_thread = Thread(target=self.send)
+        recv_thread.start()
+        send_thread.start()
 
     def close(self):
         '''
@@ -34,6 +40,21 @@ class Validator(object):
         '''
         if self.net:
             self.net.close()
+
+
+    def receive(self):
+        '''
+            Receive thread; handles incoming transactions
+        '''
+        pass
+
+    
+    def send(self):
+        '''
+            Send thread; handles outgoing transactions
+        '''
+        pass
+
 
     # def sign_message(self, private_key, message):
     #     signer = PKCS1_v1_5.new(private_key)

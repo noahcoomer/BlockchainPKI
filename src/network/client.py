@@ -67,12 +67,12 @@ class Client(object):
             :return: tx - the transaction that was just generated
         '''
 
-      # input verification
+        # input verification
         if len(name) < 1 or len(name) > 255:
             print("The name value must be between 1-255 characters.")
             return -1
       
-      # public key verification
+        # public key verification
         gen = self.verify_public_key(generator_public_key)
         if not gen:
             print("The generator public key is incorrectly formatted. Please try again.")
@@ -85,7 +85,7 @@ class Client(object):
 
         inputs = { "REGISTER" : { name : public_key } }
 
-      # Validate that the name is not already in the blockchain, break if found
+        # Validate that the name is not already in the blockchain, break if found
         flag = False
         for block in self.blockchain.chain:
             for tx in block.transactions:
@@ -104,7 +104,7 @@ class Client(object):
 
         outputs = dict()                    
         if flag == False:
-            outputs = { "REGISTER" : { "register" : True } }
+            outputs = { "REGISTER" : { "success" : True } }
         else:
             outputs = { "REGISTER" :
                             {
@@ -153,7 +153,7 @@ class Client(object):
         inputs = { "QUERY" : { "name" : name } }
         outputs = dict()
         if public_key:
-            outputs = { "QUERY" : { "query" : True, "public_key" : public_key } }
+            outputs = { "QUERY" : { "success": True, "query" : True, "public_key" : public_key } }
         else:
             outputs = { "QUERY" :
                             {
