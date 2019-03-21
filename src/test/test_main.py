@@ -61,8 +61,7 @@ def add_new_transactions():
 
     for i in range(5):
         transactions = transaction.Transaction(
-        version = version, 
-        transaction_id = t_id, 
+        version = version,
         transaction_type = transaction_type, 
         tx_generator_address = tx_generator_address, 
         time_stamp = time.time(),
@@ -94,7 +93,7 @@ def new_block():
         block_generator_address = 'asdfs1as',
         block_generation_proof = 'asdfsdwe1211',
         nonce = 1,
-        status = 'accepted',
+        status = 'Accepted',
     )
     
     block_data = json.dumps(
@@ -141,22 +140,21 @@ def add_new_block():
         previous_hash = my_last_block.hash
         #create a block
         blocks = block.Block(
-            version,
-            id,
-            transactions,
-            previous_hash,
-            merkle_hash,
-            block_generator_address,
-            block_generation_proof,
-            nonce,
-            status,
+            version=version,
+            id=id,
+            transactions=transactions,
+            previous_hash=previous_hash,
+            block_generator_address=block_generator_address,
+            block_generation_proof=block_generation_proof,
+            nonce=nonce,
+            status=status,
         )
 
 
         #create a hash for the current block
         #current_block_hash = blocks.compute_hash()  
         #add the block to the chain  
-        blockchain.add_block(blocks, current_block_hash)  
+        blockchain.add_block(blocks, hash(blocks))  
         #update the id for the next block
         id = i + 1
         #update the merkle root for next block
