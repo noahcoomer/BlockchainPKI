@@ -222,8 +222,42 @@ class Client(object):
 
     def pki_update(self, name, old_public_key, new_public_key):
         '''
+        enable the user to update the public key with the new public key 
+        return: the transaction with the new public key 
+        '''
 
         '''
+        check whether the name and the old_public_key are in the blockchain  
+        '''
+        flag = False
+        for block in self.blockchain.chain:
+            for tx in block.transaction:
+                inputs = json.loads(tx.inputs)
+                for key in inputs.keys():
+                    try:
+                        if name == inputs[key]['name'] and old_public_key == inputs[key]['public_key']
+                            flag = True
+                    except:
+                        continue
+                if old_public_key:
+                    break
+            if old_public_key:
+                break
+
+        if flag == True:
+            '''
+            we need to update the old to the new key
+            '''
+            
+
+
+
+
+
+
+
+
+
         tx = transaction.Transaction()
 
         self.send_transaction(tx)
