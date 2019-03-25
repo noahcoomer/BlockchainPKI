@@ -27,11 +27,15 @@ class Validator(object):
             :param bool bind: Whether or not to bind to (addr, port)
         '''
         self.name = name
+        # Create socket connection
         self.net = Net(name=name, addr=addr, port=port, bind=bind)
-        
+        # Instantiate Thread with a receive function
         recv_thread = Thread(target=self.receive)
+        # Instantiate Thread with a send function
         send_thread = Thread(target=self.send)
+        # Start receive thread
         recv_thread.start()
+        # Start send thread
         send_thread.start()
 
     def close(self):
@@ -39,6 +43,7 @@ class Validator(object):
             Closes a Validator and its net
         '''
         if self.net:
+            # Close socket
             self.net.close()
 
 
@@ -46,14 +51,26 @@ class Validator(object):
         '''
             Receive thread; handles incoming transactions
         '''
-        pass
+        try:
+            conn, addr = self.net.accept()
+            with conn:
+                while True:
+                    data = conn.recv(BUFF_SIZE)
+                    if not data:
+                        break
+                        decoded_transaction = data.decode()
+                    print("Received data: " + decoded_transaction)
+        except socket.timeout:
+            pass
+        return decoded_transaction
 
-    
+
+
+
     def send(self):
         '''
             Send thread; handles outgoing transactions
         '''
-        pass
 
 
     # def sign_message(self, private_key, message):
@@ -79,7 +96,20 @@ class Validator(object):
 
 if __name__ == "__main__":
     Alice = Validator(name="Alice", port=1234)
-    Bob = Validator(name="Bob", addr="10.100.109.36", port=4321, bind=False)
+    Bob = Validator(name="Bob", addr="10.228.112.126", port=4321, bind=False)
 
+try:
+    while True:
+        # Bob sends a message to Alice. So, in this case, Alice is acting
+        # as the server and Bob is acting as the client.
+        Alice.receive()
+        Bob.message(Alice, "Hello, Alice. This is Bob.")
+        time.sleep(1)
+
+        # Alice sends a message to Bob. So, in this case, Bob is acting as the server.
+        Bob.receive()
+        Alice.message(Bob, "Hello, Bob. This is Alice.")
+        time.sleep(1)
+except KeyboardInterrupt:
     Alice.close()
     Bob.close()
