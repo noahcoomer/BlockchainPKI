@@ -19,8 +19,8 @@ def block_eq_test():
 def main():
     txns = transaction_eq_test()
     assert(txns[0] == txns[1])
-    #print(txns[0].transaction_id)
-    #print(txns[1].transaction_id)
+    # print(txns[0].transaction_id)
+    # print(txns[1].transaction_id)
 
     blocks = block_eq_test()
     assert(blocks[0] == blocks[1])
