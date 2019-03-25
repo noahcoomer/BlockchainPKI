@@ -18,6 +18,7 @@ BUFF_SIZE = 2048
 
 
 class Validator(object):
+    
 
     def __init__(self, name, addr="0.0.0.0", port=4321, bind=True):
         '''
@@ -50,7 +51,7 @@ class Validator(object):
             # Close socket
             self.net.close()
 
-
+    # Function to add the transactions to transaction pool
     def receive(self):
         '''
             Receive thread; handles incoming transactions
