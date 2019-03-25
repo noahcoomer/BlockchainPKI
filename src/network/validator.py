@@ -100,16 +100,16 @@ if __name__ == "__main__":
 
 try:
     while True:
-        # Bob sends a message to Alice. So, in this case, Alice is acting
-        # as the server and Bob is acting as the client.
+        # Receives incoming transactions
         Alice.receive()
-        Bob.message(Alice, "Hello, Alice. This is Bob.")
         time.sleep(1)
 
         # Alice sends a message to Bob. So, in this case, Bob is acting as the server.
-        Bob.receive()
-        Alice.message(Bob, "Hello, Bob. This is Alice.")
-        time.sleep(1)
+        #Bob.receive()
+        #Alice.message(Bob, "Hello, Bob. This is Alice.")
+        #time.sleep(1)
+
+
 except KeyboardInterrupt:
     Alice.close()
     Bob.close()
