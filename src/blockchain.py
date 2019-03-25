@@ -1,5 +1,5 @@
-from .block import Block
-from .transaction import Transaction
+from block import Block
+from transaction import Transaction
 import json
 import time
 
