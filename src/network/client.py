@@ -43,6 +43,7 @@ class Client(object):
         print("Updating blockchain. This may take a while.")
         self.blockchain = self.update_blockchain()
         print("Finished updating blockchain.")
+        self.command_loop()
         
     def send_transaction(self, tx):
         '''
@@ -266,6 +267,44 @@ class Client(object):
             self.net.close()
 
 
+    def command_loop(self):
+        # Finished set up, enter command loop
+        print("PKChain Client successfully set up. Type 'help' for a list of commands")
+        while True:
+            command = input(">>> ").split(" ")
+            if command[0] == 'help':
+                print("Transactional Functions:\n\n ")
+                print("register                         -Register a name and public key on the blockchain.")
+                print("query                            -Query for a public key given a name.\n\n")
+                print("Local Functions:\n\n")
+                print("generate                         -Generate a public and private key pair.")
+                print("encrypt <public_key> <message>   -Encrypt a message with a public key.")
+                print("decrypt <private_key> <message>  -Decrypt a message with a private key.\n\n")
+            elif command[0] == 'exit':
+                Client1.close()
+                break
+            elif command[0] == 'register':
+                client_pub_key = input("Enter your public key (generator address):\n")
+                name = input("Enter the name you would like to register to a public key: ")
+                reg_pub_key = input("Enter the public key you would like to register:\n")
+                self.pki_register(client_pub_key, name, reg_pub_key)
+            elif command[0] == 'query':
+                pass
+            elif command[0] == 'generate':
+                private_key, public_key = Client1.generate_keys()
+                print()
+                print("Your public key is:\n\n",
+                    public_key.export_key().decode(), "\n\n")
+                print("Your private key is:\n\n",
+                    private_key.export_key().decode(), "\n\n")
+            elif command[0] == 'encrypt':
+                print("Implementation coming soon.")
+            elif command[0] == 'decrypt':
+                print("Implementation coming soon.")
+            else:
+                print("\nCommand not understood. Type 'help' for a list of commands.\n")
+
+
 if __name__ == "__main__":
     # Generates private and public key
     ##    private_key, public_key = Client.generate_keys()
@@ -280,36 +319,3 @@ if __name__ == "__main__":
     # print(decoded)
 
     Client1 = Client(name="Client 1")
-
-    # Finished set up, enter command loop
-    print("PKChain Client successfully set up. Type 'help' for a list of commands")
-    while True:
-        command = input(">>> ").split(" ")
-        if command[0] == 'help':
-            print("Transactional Functions:\n\n ")
-            print("register                         -Register a name and public key on the blockchain.")
-            print("query                            -Query for a public key given a name.\n\n")
-            print("Local Functions:\n\n")
-            print("generate                         -Generate a public and private key pair.")
-            print("encrypt <public_key> <message>   -Encrypt a message with a public key.")
-            print("decrypt <private_key> <message>  -Decrypt a message with a private key.\n\n")
-        elif command[0] == 'exit':
-            Client1.close()
-            break
-        elif command[0] == 'register':
-            pass
-        elif command[0] == 'query':
-            pass
-        elif command[0] == 'generate':
-            private_key, public_key = Client1.generate_keys()
-            print()
-            print("Your public key is:\n\n",
-                  public_key.export_key().decode(), "\n\n")
-            print("Your private key is:\n\n",
-                  private_key.export_key().decode(), "\n\n")
-        elif command[0] == 'encrypt':
-            print("Implementation coming soon.")
-        elif command[0] == 'decrypt':
-            print("Implementation coming soon.")
-        else:
-            print("\nCommand not understood. Type 'help' for a list of commands.\n")
