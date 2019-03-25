@@ -4,16 +4,15 @@ import socket
 import base64
 import json
 import time
+import pickle
+
+from threading import Thread
 
 from Crypto import Random
 from Crypto.PublicKey import RSA
 from Crypto.Cipher import PKCS1_OAEP
 from Crypto.Cipher import Salsa20
 
-from data_structs import transaction
-
-from threading import Thread
-import Queue
 import validator
 
 try:
@@ -41,18 +40,12 @@ class Client(object):
         self.name = name
         # Create socket connection
         self.net = Net(name=name, addr=addr, port=port, bind=True)
-        # Instantiate Thread with a receive function
-        send_thread = Thread(target=self.send_transaction)
-        # Start send thread
-        send_thread.start()
-        # Poll for node connections and connect to the network
-        # print("Connecting to the PKChain network...")
-        # self.connect_to_network(self.host, self.port)
-
+        
         # Update the blockchain
         print("Updating blockchain. This may take a while.")
         self.blockchain = self.update_blockchain()
         print("Finished updating blockchain.")
+        self.command_loop()
 
     def send_transaction(self, validator, tx):
         '''
@@ -64,8 +57,8 @@ class Client(object):
         if self.net and self != validator:
             # Connect to validators's inbound net using client's outbound net
             address = validator.address
-            # Encode the msg to binary
-            tx = tx.encode()
+            # Serialize the transaction as a bytes object
+            txn = pickle.dumps(tx)
             # Create a new socket (the outbound net)
             print("Attempting to send to %s:%s" % validator.address)
             with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
@@ -74,7 +67,7 @@ class Client(object):
                     # Connect to the validator
                     s.connect(address)
                     # Send the entirety of the message
-                    s.sendall(tx)
+                    s.sendall(txn)
                 except OSError as e:
                     # Except cases for if the send fails
                     if e.errno == errno.ECONNREFUSED:
@@ -155,8 +148,11 @@ class Client(object):
         # send the transaction and return it for std.out
         tx = transaction.Transaction(transaction_type="Standard", tx_generator_address=generator_public_key, inputs=inputs, outputs=outputs)
         # Create an entry point to the validator network that the client can connect to
-        validator = validator.Validator(Alice = name="Validator", addr="10.228.112.126", port=4321)
-        self.send_transaction(validator, tx)
+
+        ############## UNCOMMENT BEFORE GOING LIVE #################
+        #validator = validator.Validator(Alice = name="Validator", addr="10.228.112.126", port=4321)
+        #self.send_transaction(validator, tx)
+
         return tx
 
 
@@ -206,7 +202,9 @@ class Client(object):
         tx = transaction.Transaction(transaction_type="Standard", tx_generator_address=generator_public_key,
                                     inputs=inputs, outputs=outputs)
 
-        self.send_transaction(tx)
+        ####### UNCOMMENT BEFORE PRODUCTION ########
+        #self.send_transaction(tx)
+
         return tx
 
 
@@ -303,6 +301,56 @@ class Client(object):
             self.net.close()
 
 
+    def command_loop(self):
+        # Finished set up, enter command loop
+        print("PKChain Client successfully set up. Type 'help' for a list of commands")
+        while True:
+            command = input(">>> ").split(" ")
+            if command[0] == 'help':
+                print("Transactional Functions:\n\n ")
+                print("register                         -Register a name and public key on the blockchain.")
+                print("query                            -Query for a public key given a name.\n\n")
+                print("Local Functions:\n\n")
+                print("generate                         -Generate a public and private key pair.")
+                print("encrypt <public_key> <message>   -Encrypt a message with a public key.")
+                print("decrypt <private_key> <message>  -Decrypt a message with a private key.\n\n")
+            elif command[0] == 'exit':
+                self.close()
+                break
+            elif command[0] == 'register':
+                client_pub_key = input("Enter your public key (generator address):\n")
+                name = input("Enter the name you would like to register to a public key: ")
+                reg_pub_key = input("Enter the public key you would like to register:\n")
+                tx = self.pki_register(client_pub_key, name, reg_pub_key)
+                print("Inputs: ", json.loads(tx.inputs))
+                print("Outputs: ", json.loads(tx.outputs))
+            elif command[0] == 'query':
+                client_pub_key = input("Enter your public key (generator address):\n")
+                name = input("Enter the name you would like to query for: ")
+                tx = self.pki_query(client_pub_key, name)
+                print("Inputs: ", json.loads(tx.inputs))
+                print("Outputs: ", json.loads(tx.outputs))
+            elif command[0] == 'validate':
+                pass
+            elif command[0] == 'update':
+                pass
+            elif command[0] == 'revoke':
+                pass
+            elif command[0] == 'generate':
+                private_key, public_key = Client1.generate_keys()
+                print()
+                print("Your public key is:\n\n",
+                    public_key.export_key().decode(), "\n\n")
+                print("Your private key is:\n\n",
+                    private_key.export_key().decode(), "\n\n")
+            elif command[0] == 'encrypt':
+                print("Implementation coming soon.")
+            elif command[0] == 'decrypt':
+                print("Implementation coming soon.")
+            else:
+                print("\nCommand not understood. Type 'help' for a list of commands.\n")
+
+
 if __name__ == "__main__":
     # Generates private and public key
     ##    private_key, public_key = Client.generate_keys()
@@ -317,37 +365,3 @@ if __name__ == "__main__":
     # print(decoded)
 
     Client1 = Client(name="Client 1")
-
-
-    # Finished set up, enter command loop
-    print("PKChain Client successfully set up. Type 'help' for a list of commands")
-    while True:
-        command = input(">>> ").split(" ")
-        if command[0] == 'help':
-            print("Transactional Functions:\n\n ")
-            print("register                         -Register a name and public key on the blockchain.")
-            print("query                            -Query for a public key given a name.\n\n")
-            print("Local Functions:\n\n")
-            print("generate                         -Generate a public and private key pair.")
-            print("encrypt <public_key> <message>   -Encrypt a message with a public key.")
-            print("decrypt <private_key> <message>  -Decrypt a message with a private key.\n\n")
-        elif command[0] == 'exit':
-            Client1.close()
-            break
-        elif command[0] == 'register':
-            pass
-        elif command[0] == 'query':
-            pass
-        elif command[0] == 'generate':
-            private_key, public_key = Client1.generate_keys()
-            print()
-            print("Your public key is:\n\n",
-                  public_key.export_key().decode(), "\n\n")
-            print("Your private key is:\n\n",
-                  private_key.export_key().decode(), "\n\n")
-        elif command[0] == 'encrypt':
-            print("Implementation coming soon.")
-        elif command[0] == 'decrypt':
-            print("Implementation coming soon.")
-        else:
-            print("\nCommand not understood. Type 'help' for a list of commands.\n")
