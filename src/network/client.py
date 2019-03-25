@@ -10,6 +10,12 @@ from Crypto.PublicKey import RSA
 from Crypto.Cipher import PKCS1_OAEP
 from Crypto.Cipher import Salsa20
 
+from data_structs import transaction
+
+from threading import Thread
+import Queue
+import validator
+
 try:
     from .net import Net
 except:
@@ -22,8 +28,8 @@ from data_structs import transaction
 
 
 class Client(object):
-    blockchain = None 
-  
+    blockchain = None
+
     def __init__(self, name, addr="0.0.0.0", port=1234):
         '''
             Initialize a Client object
@@ -33,8 +39,12 @@ class Client(object):
             :param int port: The port for serving inbound connections
         '''
         self.name = name
+        # Create socket connection
         self.net = Net(name=name, addr=addr, port=port, bind=True)
-
+        # Instantiate Thread with a receive function
+        send_thread = Thread(target=self.send_transaction)
+        # Start send thread
+        send_thread.start()
         # Poll for node connections and connect to the network
         # print("Connecting to the PKChain network...")
         # self.connect_to_network(self.host, self.port)
@@ -44,15 +54,40 @@ class Client(object):
         self.blockchain = self.update_blockchain()
         print("Finished updating blockchain.")
         self.command_loop()
-        
-    def send_transaction(self, tx):
+
+    def send_transaction(self, validator, tx):
         '''
             Send a transaction to the validator network
 
             :param Transaction tx: The transaction to send
         '''
+        #
+        if self.net and self != validator:
+            # Connect to validators's inbound net using client's outbound net
+            address = validator.address
+            # Encode the msg to binary
+            tx = tx.encode()
+            # Create a new socket (the outbound net)
+            print("Attempting to send to %s:%s" % validator.address)
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                s.setblocking(True)
+                try:
+                    # Connect to the validator
+                    s.connect(address)
+                    # Send the entirety of the message
+                    s.sendall(tx)
+                except OSError as e:
+                    # Except cases for if the send fails
+                    if e.errno == errno.ECONNREFUSED:
+                        print(e)
+                        # return -1, e
+                except socket.error as e:
+                    print(e)
+        else:
+            raise Exception(
+                "The validator must be initialized and listening for connections")
         pass
-        
+
     def update_blockchain(self):
         '''
             Update blockchain to be current
@@ -72,7 +107,7 @@ class Client(object):
         if len(name) < 1 or len(name) > 255:
             print("The name value must be between 1-255 characters.")
             return -1
-      
+
         # public key verification
         gen = self.verify_public_key(generator_public_key)
         if not gen:
@@ -103,7 +138,7 @@ class Client(object):
             if flag == True:
                 break
 
-        outputs = dict()                    
+        outputs = dict()
         if flag == False:
             outputs = { "REGISTER" : { "success" : True } }
         else:
@@ -120,9 +155,11 @@ class Client(object):
 
         # send the transaction and return it for std.out
         tx = transaction.Transaction(transaction_type="Standard", tx_generator_address=generator_public_key, inputs=inputs, outputs=outputs)
-        self.send_transaction(tx)
+        # Create an entry point to the validator network that the client can connect to
+        validator = validator.Validator(Alice = name="Validator", addr="10.228.112.126", port=4321)
+        self.send_transaction(validator, tx)
         return tx
-  
+
 
     def pki_query(self, generator_public_key, name):
         '''
@@ -150,7 +187,7 @@ class Client(object):
                     break
             if public_key:
                 break
-        
+
         inputs = { "QUERY" : { "name" : name } }
         outputs = dict()
         if public_key:
@@ -165,8 +202,8 @@ class Client(object):
 
         # dump to JSON
         inputs = json.dumps(inputs)
-        outputs = json.dumps(outputs)                       
-                
+        outputs = json.dumps(outputs)
+
         tx = transaction.Transaction(transaction_type="Standard", tx_generator_address=generator_public_key,
                                     inputs=inputs, outputs=outputs)
 
@@ -202,7 +239,7 @@ class Client(object):
 
         self.send_transaction(tx)
         return tx
-    
+
 
     @staticmethod
     def generate_keys():
@@ -257,7 +294,7 @@ class Client(object):
             return key
         except ValueError:
             return None
-      
+
 
     def close(self):
         '''
