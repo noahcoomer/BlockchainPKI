@@ -11,6 +11,15 @@ NOAH_PUBLIC_KEY = """-----BEGIN PUBLIC KEY-----
                      -----END PUBLIC KEY----- 
                   """
 
+DUNGLE_PUBLIC_KEY = """-----BEGIN PUBLIC KEY-----
+                    AAAAB3NzaC1yc2EAAAADAQABAAABAQCSjebchoY0rncJSbtkbwpTvggKaY/TVObKY
+                    NXu55pIuMTMJKdd8xEGOAtJo12kzyrn/7I5F0kAdYwFe/PZJJQZ6v0IgJ+sDwTrvM
+                    vP/YU5JQOSkJKu5VEoDd44gv93x4d9636zgXV6X2CGlwcFtr6DvE9wzE7ml1hxGwR
+                    9GD7EkUsZMcOF5au5QrygKiN0BJkp7rLeJIzAwoJJf5/7nchxZAgEyJ6VE0WXZp6H
+                    Zou8WfA5UZxzG0/0AveCt29cCRiYTJiIQuavp2zxzUblh4Ds/yUcJdWSGansKdWnT
+                    v7C6RWl9NXTr4R+JaC8GcmNZLdeetXr8AD2Pym9F1WKMUOf
+                       -----END PUBLIC KEY-----
+                    """
 class Blockchain:
     difficulty = 3
     chain = []
@@ -25,13 +34,22 @@ class Blockchain:
         inputs_1 = json.dumps(inputs_1)
         outputs_1 = { "REGISTER": { "success": True } }
         outputs_1 = json.dumps(outputs_1)
-        tx_1 = Transaction(tx_generator_address=NOAH_PUBLIC_KEY, 
+
+        inputs_2 = { "REGISTER": { "name" : "Dung Le", "public_key": DUNGLE_PUBLIC_KEY } }
+        inputs_2 = json.dumps(inputs_2)
+        outputs_2 = { "REGISTER": { "success": True } }
+        outputs_3 = json.dumps(outputs_2)
+
+        tx_1 = Transaction( tx_generator_address=NOAH_PUBLIC_KEY, 
+                           inputs=inputs_1, outputs=outputs_1, lock_time=int(time.time()))
+
+        tx_2 = Transaction( tx_generator_address=DUNGLE_PUBLIC_KEY, 
                            inputs=inputs_1, outputs=outputs_1, lock_time=int(time.time()))
 
         genesis_block = Block(
             version=0.1,
             id=0,
-            transactions=[tx_1],
+            transactions=[tx_1, tx_2],
             previous_hash="",
             block_generator_address="",
             block_generation_proof="",
@@ -121,3 +139,12 @@ class Blockchain:
 
         self.unconfirmed_transactions = []
         return new_block.id
+
+
+
+    # def load_data(self):
+    #     with open('blockchain.txt', 'r') as file_load:
+
+
+    # def save_data(self):
+    #     with open('blockchain.txt', 'w') as file_write:
