@@ -84,7 +84,7 @@ class Client(object):
                     print(e)
         else:
             raise Exception(
-                "The net must be initialized and listening for connections")
+                "The validator must be initialized and listening for connections")
         pass
 
     def update_blockchain(self):
@@ -155,7 +155,7 @@ class Client(object):
         # send the transaction and return it for std.out
         tx = transaction.Transaction(transaction_type="Standard", tx_generator_address=generator_public_key, inputs=inputs, outputs=outputs)
         # Create an entry point to the validator network that the client can connect to
-        validator = validator.Validator(Alice = name="Alice", addr="10.228.112.126", port=4321)
+        validator = validator.Validator(Alice = name="Validator", addr="10.228.112.126", port=4321)
         self.send_transaction(validator, tx)
         return tx
 
