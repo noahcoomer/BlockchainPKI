@@ -27,7 +27,7 @@ class Block:
         self.nonce = nonce
         # Block status - Proposed/Confirmed/Rejected/"Accepted??"
         self.status = status
-        # Total number of transaction included in this block ???
+        # Total number of transaction included in this block => This will be used to verify the transaction from merkel root
         self.t_counter = len(transactions)
         self.timestamp = int(time.time())            # Creation time of this block
         # The hash of the block header
@@ -72,9 +72,10 @@ class Block:
 
 
     def __hash__(self): # SHA256() ???
-        return hash((self.version, self.id, self.previous_hash, self.merkle_root,
-                     self.block_generator_address, self.block_generation_proof,
-                     self.nonce, self.status, self.t_counter, self.timestamp))
+        block_info = "" + self.version + self.id + self.previous_hash + self.merkle_root + self.block_generator_address + self.block_generation_proof + self.nonce + self.status + self.t_counter + self.timestamp;
+
+        hash_256 = hashlib.sha256(block_info.encode()).hexdigest()
+        return hash_256
 
     
     def __eq__(self, other):
@@ -84,3 +85,4 @@ class Block:
                self.block_generation_proof == other.block_generation_proof and \
                self.nonce == other.nonce and self.status == other.status and \
                self.t_counter == other.t_counter and self.timestamp == other.timestamp
+

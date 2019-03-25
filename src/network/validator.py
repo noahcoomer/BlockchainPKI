@@ -17,6 +17,8 @@ OUTCONN_THRESH = 8
 
 class Validator(object):
 
+    validator_tx_pool = []
+
     def __init__(self, name, addr="0.0.0.0", port=4321, bind=True):
         '''
             Initialize a Validator object
@@ -41,7 +43,7 @@ class Validator(object):
         if self.net:
             self.net.close()
 
-
+    # Function to add the transactions to transaction pool
     def receive(self):
         '''
             Receive thread; handles incoming transactions
@@ -54,6 +56,10 @@ class Validator(object):
             Send thread; handles outgoing transactions
         '''
         pass
+
+
+    
+   
 
 
     # def sign_message(self, private_key, message):
@@ -83,3 +89,5 @@ if __name__ == "__main__":
 
     Alice.close()
     Bob.close()
+
+
