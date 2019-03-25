@@ -115,7 +115,7 @@ class Client(object):
 
         # Validate that the name is not already in the blockchain, break if found
         flag = False
-        for block in self.blockchain.chain:
+        for block in reversed(self.blockchain.chain):
             for tx in block.transactions:
                 inp = json.loads(tx.inputs)
                 for key in inp.keys():
@@ -169,7 +169,7 @@ class Client(object):
 
         # Query blockchain, break if we find our public key
         public_key = None
-        for block in self.blockchain.chain:
+        for block in reversed(self.blockchain.chain):
             for tx in block.transactions:
                 inputs = json.loads(tx.inputs)
                 for key in inputs.keys(): # should only be 1 top level key - still O(1)
