@@ -79,10 +79,4 @@ class Block:
 
     
     def __eq__(self, other):
-        return self.version == other.version and self.id == other.id and \
-               self.previous_hash == other.previous_hash and self.merkle_root == other.merkle_hash \
-               and self.block_generator_address == other.block_generator_address and \
-               self.block_generation_proof == other.block_generation_proof and \
-               self.nonce == other.nonce and self.status == other.status and \
-               self.t_counter == other.t_counter and self.timestamp == other.timestamp
-
+        return hash(self) == hash(other)

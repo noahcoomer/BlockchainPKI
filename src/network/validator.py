@@ -10,14 +10,15 @@ import errno
 import socket
 import binascii
 import threading
+import pickle
 
 INCONN_THRESH = 128
 OUTCONN_THRESH = 8
+BUFF_SIZE = 2048
 
 
 class Validator(object):
-
-    validator_tx_pool = []
+    
 
     def __init__(self, name, addr="0.0.0.0", port=4321, bind=True):
         '''
@@ -29,11 +30,17 @@ class Validator(object):
             :param bool bind: Whether or not to bind to (addr, port)
         '''
         self.name = name
+        # Create socket connection
         self.net = Net(name=name, addr=addr, port=port, bind=bind)
-        
+        # Buffer to store incoming transactions
+        self.mempool = []
+        # Instantiate Thread with a receive function
         recv_thread = Thread(target=self.receive)
+        # Instantiate Thread with a send function
         send_thread = Thread(target=self.send)
+        # Start receive thread
         recv_thread.start()
+        # Start send thread
         send_thread.start()
 
     def close(self):
@@ -41,6 +48,7 @@ class Validator(object):
             Closes a Validator and its net
         '''
         if self.net:
+            # Close socket
             self.net.close()
 
     # Function to add the transactions to transaction pool
@@ -48,19 +56,30 @@ class Validator(object):
         '''
             Receive thread; handles incoming transactions
         '''
-        pass
+        try:
+            conn, addr = self.net.accept()
+            # add this connection to a dictionary of incoming connections
+            with conn:
+                data = ''
+                while True:
+                    data += conn.recv(BUFF_SIZE)
+                    if not data:
+                        # Deserialize the entire object when data reception has ended
+                        decoded_transaction = pickle.loads(data)
+                        print("Received data: " + decoded_transaction)
+                        # check if this transaction is in mempool
+                        # broadcast to network
+                        data = ''
+        except socket.timeout:
+            pass
+        return decoded_transaction
 
-    
+
     def send(self):
         '''
             Send thread; handles outgoing transactions
         '''
         pass
-
-
-    
-   
-
 
     # def sign_message(self, private_key, message):
     #     signer = PKCS1_v1_5.new(private_key)
@@ -85,9 +104,20 @@ class Validator(object):
 
 if __name__ == "__main__":
     Alice = Validator(name="Alice", port=1234)
-    Bob = Validator(name="Bob", addr="10.100.109.36", port=4321, bind=False)
+    Bob = Validator(name="Bob", addr="10.228.112.126", port=4321, bind=False)
 
-    Alice.close()
-    Bob.close()
+    try:
+        while True:
+            # Receives incoming transactions
+            Alice.receive()
+            time.sleep(1)
+
+            # Alice sends a message to Bob. So, in this case, Bob is acting as the server.
+            #Bob.receive()
+            #Alice.message(Bob, "Hello, Bob. This is Alice.")
+            #time.sleep(1)
 
 
+    except KeyboardInterrupt:
+        Alice.close()
+        Bob.close()
