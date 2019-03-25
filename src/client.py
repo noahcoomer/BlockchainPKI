@@ -14,16 +14,8 @@ from Crypto.Cipher import PKCS1_OAEP
 from Crypto.Cipher import Salsa20
 
 import validator
-
-try:
-    from .net import Net
-except:
-    from net import Net
-
-# This needs to be the last imported line
-import sys
-sys.path.append('../')
-from data_structs import transaction
+import transaction
+from net import Net
 
 
 class Client(object):
@@ -115,7 +107,7 @@ class Client(object):
 
         # Validate that the name is not already in the blockchain, break if found
         flag = False
-        for block in self.blockchain.chain:
+        for block in reversed(self.blockchain.chain):
             for tx in block.transactions:
                 inp = json.loads(tx.inputs)
                 for key in inp.keys():
@@ -169,7 +161,7 @@ class Client(object):
 
         # Query blockchain, break if we find our public key
         public_key = None
-        for block in self.blockchain.chain:
+        for block in reversed(self.blockchain.chain):
             for tx in block.transactions:
                 inputs = json.loads(tx.inputs)
                 for key in inputs.keys(): # should only be 1 top level key - still O(1)
@@ -337,7 +329,7 @@ class Client(object):
             elif command[0] == 'revoke':
                 pass
             elif command[0] == 'generate':
-                private_key, public_key = Client1.generate_keys()
+                private_key, public_key = self.generate_keys()
                 print()
                 print("Your public key is:\n\n",
                     public_key.export_key().decode(), "\n\n")
