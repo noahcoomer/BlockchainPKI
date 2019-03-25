@@ -10,9 +10,11 @@ import errno
 import socket
 import binascii
 import threading
+import pickle
 
 INCONN_THRESH = 128
 OUTCONN_THRESH = 8
+BUFF_SIZE = 2048
 
 
 class Validator(object):
@@ -29,6 +31,8 @@ class Validator(object):
         self.name = name
         # Create socket connection
         self.net = Net(name=name, addr=addr, port=port, bind=bind)
+        # Buffer to store incoming transactions
+        self.mempool = []
         # Instantiate Thread with a receive function
         recv_thread = Thread(target=self.receive)
         # Instantiate Thread with a send function
@@ -53,25 +57,28 @@ class Validator(object):
         '''
         try:
             conn, addr = self.net.accept()
+            # add this connection to a dictionary of incoming connections
             with conn:
+                data = ''
                 while True:
-                    data = conn.recv(BUFF_SIZE)
+                    data += conn.recv(BUFF_SIZE)
                     if not data:
-                        break
-                        decoded_transaction = data.decode()
-                    print("Received data: " + decoded_transaction)
+                        # Deserialize the entire object when data reception has ended
+                        decoded_transaction = pickle.loads(data)
+                        print("Received data: " + decoded_transaction)
+                        # check if this transaction is in mempool
+                        # broadcast to network
+                        data = ''
         except socket.timeout:
             pass
         return decoded_transaction
-
-
 
 
     def send(self):
         '''
             Send thread; handles outgoing transactions
         '''
-
+        pass
 
     # def sign_message(self, private_key, message):
     #     signer = PKCS1_v1_5.new(private_key)
@@ -98,18 +105,18 @@ if __name__ == "__main__":
     Alice = Validator(name="Alice", port=1234)
     Bob = Validator(name="Bob", addr="10.228.112.126", port=4321, bind=False)
 
-try:
-    while True:
-        # Receives incoming transactions
-        Alice.receive()
-        time.sleep(1)
+    try:
+        while True:
+            # Receives incoming transactions
+            Alice.receive()
+            time.sleep(1)
 
-        # Alice sends a message to Bob. So, in this case, Bob is acting as the server.
-        #Bob.receive()
-        #Alice.message(Bob, "Hello, Bob. This is Alice.")
-        #time.sleep(1)
+            # Alice sends a message to Bob. So, in this case, Bob is acting as the server.
+            #Bob.receive()
+            #Alice.message(Bob, "Hello, Bob. This is Alice.")
+            #time.sleep(1)
 
 
-except KeyboardInterrupt:
-    Alice.close()
-    Bob.close()
+    except KeyboardInterrupt:
+        Alice.close()
+        Bob.close()
