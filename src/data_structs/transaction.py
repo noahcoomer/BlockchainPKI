@@ -59,9 +59,7 @@ class Transaction:
 
 
     def __eq__(self, other):
-        return self.version == other.version and self.transaction_type == other.transaction_type \
-               and self.inputs == other.inputs and self.outputs == other.outputs and \
-               self.lock_time == other.lock_time and self.time_stamp == other.time_stamp
+        return hash(self) == hash(other)
 
     
 
