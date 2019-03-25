@@ -229,6 +229,20 @@ class Client(object):
         '''
         check whether the name and the old_public_key are in the blockchain  
         '''
+
+        #verify the old_public_key
+        old_key = self.verify_public_key(old_public_key)
+        if not old_key:
+            print('this old public key is not formatted correctly')
+            return -1 
+        
+        #verify the new_public_key
+        new_key = self.verify_public_key(new_public_key)
+        if not new_key:
+            print('This new public key is not formatted correctly')
+            return -1 
+            
+
         flag = False
         for block in self.blockchain.chain:
             for tx in block.transaction:
@@ -239,27 +253,32 @@ class Client(object):
                             flag = True
                     except:
                         continue
-                if old_public_key:
+                if flag == True:
                     break
-            if old_public_key:
+            if flag == True:
                 break
+        
 
+        # Create the input for the update, for the input we have the name, old_public_key and the new_public_key 
+        inputs = {'UPDATE': {'name': name, 'old_public_key': old_public_key, 'new_public_key': new_public_key}}
+
+        # Create the output for the update 
+        outputs = dict()
+         
         if flag == True:
-            '''
-            we need to update the old to the new key
-            '''
-            
+            outputs = {'UPDATE': {'success': True, 'update': True, 'new_public_key': new_public_key}}
+        else:
+            outputs = {'UPDATE': {'success': False, 'message': 'cannot find the name and old public key'}}
 
 
-
-
-
-
-
-
-
-        tx = transaction.Transaction()
-
+        #dumps to JSON
+        json.dumps(inputs)
+        json.dumps(outputs)
+        '''
+        this means that we found the name and the old_public_key in one of the transactions
+        Goal: need to add a new transaction that will have the same name but with a new public key 
+        '''
+        tx = transaction.Transaction(transaction_type='standard', inputs= inputs, outputs= outputs)
         self.send_transaction(tx)
         return tx
 
