@@ -38,7 +38,7 @@ class Blockchain:
         inputs_2 = { "REGISTER": { "name" : "Dung Le", "public_key": DUNGLE_PUBLIC_KEY } }
         inputs_2 = json.dumps(inputs_2)
         outputs_2 = { "REGISTER": { "success": True } }
-        outputs_3 = json.dumps(outputs_2)
+        outputs_2 = json.dumps(outputs_2)
 
         tx_1 = Transaction( tx_generator_address=NOAH_PUBLIC_KEY, 
                            inputs=inputs_1, outputs=outputs_1, lock_time=int(time.time()))
