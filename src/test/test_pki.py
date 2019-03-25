@@ -36,10 +36,13 @@ def register_transaction(name):
     _client.blockchain = create_test_chain()
     #print(_client.blockchain.last_block.transactions)
     tx = _client.pki_register(TEST_KEY_1, name, TEST_KEY_1)
-    if tx == -1:
-        print("Exited with error.")
-        return
-    print_transaction_info(tx)
+    try:
+        if tx == -1:
+            print("Exited with error.")
+            return
+    except:
+        #print_transaction_info(tx)
+        return tx
 
 
 def query_transaction(query):
@@ -47,10 +50,13 @@ def query_transaction(query):
     _client.blockchain = create_test_chain()
     #print(_client.blockchain.last_block.transactions)
     tx = _client.pki_query(TEST_KEY_1, query)
-    if tx == -1:
-        print("Exited with error.")
-        return
-    print_transaction_info(tx)
+    try:
+        if tx == -1:
+            print("Exited with error.")
+            return
+    except:
+        #print_transaction_info(tx)
+        return tx
 
 
 def create_test_chain():
@@ -93,15 +99,23 @@ def print_transaction_info(tx):
 def main():
     print("Registration transaction tests:\n\n")
     # Passing registration transaction
-    register_transaction("unknown")
+    tx_reg_pass = register_transaction("unknown")
+    status_dict = json.loads(tx_reg_pass.outputs)
+    assert(status_dict["REGISTER"]["success"]) == True
     # Failing registration transaction
-    register_transaction("noah_coomer")
+    tx_reg_fail = register_transaction("noah_coomer")
+    status_dict = json.loads(tx_reg_fail.outputs)
+    assert(status_dict["REGISTER"]["success"]) == False
 
     print("Query transaction tests:\n\n")
     # Passing query transaction
-    query_transaction("lebron_james")
+    tx_query_pass = query_transaction("lebron_james")
+    status_dict = json.loads(tx_query_pass.outputs)
+    assert(status_dict["QUERY"]["success"]) == True
     # Failing query transaction
-    query_transaction("noah")
+    tx_query_fail = query_transaction("noah")
+    status_dict = json.loads(tx_query_fail.outputs)
+    assert(status_dict["QUERY"]["success"]) == False
 
 
 if __name__ == '__main__':

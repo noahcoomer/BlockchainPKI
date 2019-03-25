@@ -50,7 +50,7 @@ class Block:
             tx_hash = self.hash_2_txs(transactions[tx_id], transactions[tx_id+1])
             new_tx_hashes.append(tx_hash)
 
-        # if the number of transactions is odd then hash the lsat item twice
+        # if the number of transactions is odd then hash the last item twice
         if len(transactions % 2 == 1):
             tx_hash = self.hash_2_txs(transactions[-1], transactions[-1])
             new_tx_hashes.append(tx_hash)
@@ -70,8 +70,17 @@ class Block:
 
         return hash_return.hexdigest()[::-1]
 
+
     def __hash__(self): # SHA256() ???
         return hash((self.version, self.id, self.previous_hash, self.merkle_root,
                      self.block_generator_address, self.block_generation_proof,
-                     self.nonce, self.status, self.t_counter,
-                     self.timestamp))
+                     self.nonce, self.status, self.t_counter, self.timestamp))
+
+    
+    def __eq__(self, other):
+        return self.version == other.version and self.id == other.id and \
+               self.previous_hash == other.previous_hash and self.merkle_root == other.merkle_hash \
+               and self.block_generator_address == other.block_generator_address and \
+               self.block_generation_proof == other.block_generation_proof and \
+               self.nonce == other.nonce and self.status == other.status and \
+               self.t_counter == other.t_counter and self.timestamp == other.timestamp
