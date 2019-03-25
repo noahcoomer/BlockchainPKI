@@ -315,7 +315,7 @@ class Client(object):
                 print("encrypt <public_key> <message>   -Encrypt a message with a public key.")
                 print("decrypt <private_key> <message>  -Decrypt a message with a private key.\n\n")
             elif command[0] == 'exit':
-                Client1.close()
+                self.close()
                 break
             elif command[0] == 'register':
                 client_pub_key = input("Enter your public key (generator address):\n")
