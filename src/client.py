@@ -1,43 +1,88 @@
-# PKChain Client
-
-import socket
-import base64
-import json
-import time
-import pickle
-
+from random import randint
 from threading import Thread
-
 from Crypto import Random
 from Crypto.PublicKey import RSA
 from Crypto.Cipher import PKCS1_OAEP
 from Crypto.Cipher import Salsa20
 
+import os, ssl, json, time, errno, socket, base64, pickle
+
 import validator
 import transaction
-from net import Net
 
 
 class Client(object):
     blockchain = None
 
-    def __init__(self, name, addr="0.0.0.0", port=1234):
+    def __init__(self, name, addr="0.0.0.0", port=1234, validators_capath="~/.BlockchainPKI/validators/"):
         '''
             Initialize a Client object
 
             :param str name: A canonical name
             :param str addr: The ip address for serving inbound connections
             :param int port: The port for serving inbound connections
+            :param str capath: 
         '''
-        self.name = name
-        # Create socket connection
-        self.net = Net(name=name, addr=addr, port=port, bind=True)
+        self.name = name or socket.getfqdn(socket.gethostname())
+        self.address = addr, port 
+        self.validators_capath = validators_capath
+        self._init_net()
+        self._load_other_ca(capath=self.validators_capath)
         
         # Update the blockchain
         print("Updating blockchain. This may take a while.")
-        self.blockchain = self.update_blockchain()
+        self.update_blockchain()
         print("Finished updating blockchain.")
         self.command_loop()
+
+    def _init_net(self):
+        '''
+            Initializes a TCP socket for incoming traffic and binds it.
+
+            If the connection is refused, -1 will be returned.
+            If the address is already in use, a new random port will be recursively tried.
+        '''
+        try:
+            self.net = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            self.net.settimeout(0.001)  # Blocking socket
+            self.net.bind(self.address)  # Bind to address
+            self.net.listen()  # Listen for connections
+        except socket.error as e:
+            if e.errno == errno.ECONNREFUSED:
+                # Connection refused error
+                return -1, e
+            elif e.errno == errno.EADDRINUSE:
+                # Address already in use, try another port
+                addr, port = self.address
+                new_port = randint(1500, 5000)
+                print("Address %s:%d is already in use, trying port %d instead" %
+                      (addr, port, new_port))
+                self.address = addr, new_port
+                self._init_net()  # Try to initialize the net again
+        finally:
+            self.context = ssl.create_default_context()
+        
+    def _load_other_ca(self, capath=None):
+        '''
+            Loads a set of CAs from a directory 
+            into the sending context
+        '''
+        assert self.context != None, "Initialize the send context before loading CAs."
+
+        capath = capath.replace("~", os.environ["HOME"])
+
+        if not os.path.exists(capath):
+            print("Directory %s does not exist" % capath)
+            cont = input("Would you like to create %s? (y/n)" % capath)
+            if cont.strip() == 'y':
+                os.mkdir(capath)
+                print("Created %s" % capath)
+        elif len(os.listdir(capath)) == 0:
+            raise FileNotFoundError(
+                "No other Validator CAs were found at %s. You will be unable to send any data without them." % capath)
+        else:
+            self.context.load_verify_locations(
+                capath=capath or self.validators_capath)
 
     def send_transaction(self, validator, tx):
         '''
@@ -78,7 +123,6 @@ class Client(object):
         '''
         return None
 
-
     def pki_register(self, generator_public_key, name, public_key):
         '''
             Creates a register transaction
@@ -86,7 +130,6 @@ class Client(object):
                      public_key - the public key to be added
             :return: tx - the transaction that was just generated
         '''
-
         # input verification
         if len(name) < 1 or len(name) > 255:
             print("The name value must be between 1-255 characters.")
@@ -147,7 +190,6 @@ class Client(object):
 
         return tx
 
-
     def pki_query(self, generator_public_key, name):
         '''
             Query the blockchain for a public key given a name
@@ -199,7 +241,6 @@ class Client(object):
 
         return tx
 
-
     def pki_validate(self, generator_public_key, name, public_key):
         '''
 
@@ -208,7 +249,6 @@ class Client(object):
 
         self.send_transaction(tx)
         return tx
-
 
     def pki_update(self, name, old_public_key, new_public_key):
         '''
@@ -219,7 +259,6 @@ class Client(object):
         self.send_transaction(tx)
         return tx
 
-
     def pki_revoke(self, public_key, private_key):
         '''
 
@@ -228,7 +267,6 @@ class Client(object):
 
         self.send_transaction(tx)
         return tx
-
 
     @staticmethod
     def generate_keys():
@@ -275,7 +313,6 @@ class Client(object):
         deserialized_message = pickle.load(decoded_decrypted_msg)
         return deserialized_message
 
-
     @staticmethod
     def verify_public_key(public_key):
         '''
@@ -288,15 +325,6 @@ class Client(object):
             return key
         except ValueError:
             return None
-
-
-    def close(self):
-        '''
-            Close the client and its net
-        '''
-        if self.net:
-            self.net.close()
-
 
     def command_loop(self):
         # Finished set up, enter command loop
@@ -347,7 +375,13 @@ class Client(object):
             else:
                 print("\nCommand not understood. Type 'help' for a list of commands.\n")
 
-
+    def close(self):
+        '''
+            Close the client and its net
+        '''
+        if self.net:
+            self.net.close()
+            
 if __name__ == "__main__":
     # Generates private and public key
     ##    private_key, public_key = Client.generate_keys()
