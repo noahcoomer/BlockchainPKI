@@ -11,6 +11,8 @@ import socket
 import binascii
 import threading
 
+import pickle
+
 INCONN_THRESH = 128
 OUTCONN_THRESH = 8
 
@@ -58,7 +60,10 @@ class Validator(object):
                     data = conn.recv(BUFF_SIZE)
                     if not data:
                         break
+                        # Decode binary transaction
                         decoded_transaction = data.decode()
+                        # Deserialize transaction
+                        decoded_transaction = pickle.loads(decoded_transaction)
                     print("Received data: " + decoded_transaction)
         except socket.timeout:
             pass

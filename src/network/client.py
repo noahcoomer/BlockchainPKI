@@ -16,6 +16,8 @@ from threading import Thread
 import Queue
 import validator
 
+import pickle
+
 try:
     from .net import Net
 except:
@@ -64,6 +66,8 @@ class Client(object):
         if self.net and self != validator:
             # Connect to validators's inbound net using client's outbound net
             address = validator.address
+            # Serialize transaction
+            tx = pickle.dumps(tx)
             # Encode the msg to binary
             tx = tx.encode()
             # Create a new socket (the outbound net)
