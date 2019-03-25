@@ -14,16 +14,8 @@ from Crypto.Cipher import PKCS1_OAEP
 from Crypto.Cipher import Salsa20
 
 import validator
-
-try:
-    from .net import Net
-except:
-    from net import Net
-
-# This needs to be the last imported line
-import sys
-sys.path.append('../')
-from data_structs import transaction
+import transaction
+from net import Net
 
 
 class Client(object):
