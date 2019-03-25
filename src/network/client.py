@@ -337,7 +337,7 @@ class Client(object):
             elif command[0] == 'revoke':
                 pass
             elif command[0] == 'generate':
-                private_key, public_key = Client1.generate_keys()
+                private_key, public_key = self.generate_keys()
                 print()
                 print("Your public key is:\n\n",
                     public_key.export_key().decode(), "\n\n")
