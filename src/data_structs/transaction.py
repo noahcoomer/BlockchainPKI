@@ -15,26 +15,25 @@ Questions: What kind of data type does registration, query, update, revoke can t
 what does update, revoke is for , and query?
 '''
 
+import time
 
 class Transaction:
 
-    registration = "12312321"
-    query = "asdl12"
-    update = "3453497a"
-
     # constructor that set up the fields of the transaction
 
-    def __init__(self, version, transaction_id, transaction_type, tx_generator_address, lock_time, time_stamp):
+    def __init__(self, version=0.1, transaction_type=None, tx_generator_address=None,
+                 inputs= None, outputs=None, lock_time=None):
         self.version = version  # specifies which rules this transaction follows
-        self.transaction_id = transaction_id  # transaction sequence #
+          # transaction sequence #
         self.transaction_type = transaction_type  # Admin/Regular
         # public key of transaction generator-Client or Block validators
         self.tx_generator_address = tx_generator_address
-        # self.inputs = inputs  # type of services requested
-        # self.outputs = outputs  # request result
+        self.inputs = inputs  # type of services requested
+        self.outputs = outputs  # request result
         # a unix timestamp or block number-locktime defines the earlier time that a transaction can be added
         self.lock_time = lock_time
-        self.time_stamp = time_stamp  # transaction generation time
+        self.time_stamp = int(time.time())  # transaction generation time
+        self.transaction_id = hash(self)
         # self.username = username  # username for the client
         # self.public_key = public_key  # public key of the client
         # self.proof = proof  # proof
@@ -45,8 +44,23 @@ class Transaction:
         else:
             round_change = True
 
+
     def regular_tx(self, registration, query, update, revoke):
         pass
 
+
     def output(self):
         pass
+
+
+    def __hash__(self):
+        return hash((self.version, self.transaction_type, self.tx_generator_address,
+                     self.inputs, self.outputs, self.lock_time, self.time_stamp))
+
+
+    def __eq__(self, other):
+        return hash(self) == hash(other)
+
+    
+
+        
