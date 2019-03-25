@@ -16,6 +16,7 @@ what does update, revoke is for , and query?
 '''
 
 import time
+import hashlib
 
 class Transaction:
 
@@ -53,9 +54,11 @@ class Transaction:
         pass
 
 
-    def __hash__(self):
-        return hash((self.version, self.transaction_type, self.tx_generator_address,
-                     self.inputs, self.outputs, self.lock_time, self.time_stamp))
+    def __hash__(self): # SHA256() ???
+        tx_info = "" + self.version + self.transaction_type + self.tx_generator_address + self.inputs + self.outputs + self.lock_time + self.time_stamp
+
+        hash_256 = hashlib.sha256(tx_info.encode()).hexdigest()
+        return hash_256
 
 
     def __eq__(self, other):
