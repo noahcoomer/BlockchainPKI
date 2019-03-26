@@ -11,10 +11,10 @@ Cd into the project folder and install the necessary requirements:
 
 Run a validator node:
  ```
- > python3 src/network/validator.py
+ > python3 src/validator.py
  ```
  
 Run a client connection:
 ```
-> python3 src/network/client.py
+> python3 src/client.py
 ```
