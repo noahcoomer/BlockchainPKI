@@ -4,6 +4,7 @@ from Crypto import Random
 from Crypto.PublicKey import RSA
 from Crypto.Cipher import PKCS1_OAEP
 from Crypto.Cipher import Salsa20
+from os.path import expanduser
 
 import os, ssl, json, time, errno, socket, base64, pickle
 
@@ -274,10 +275,29 @@ class Client(object):
             Generate public and private keys using RSA key generation
         '''
         # Specify the IP size of the key modulus
-        modulus_lenght = 256 * 4
+        modulus_length = 256 * 8
         # Using a Random Number Generator and the modulus length as parameters
         # For the RSA key generation, create your private key
-        private_key = RSA.generate(modulus_lenght, Random.new().read)
+        private_key = RSA.generate(modulus_length, Random.new().read)
+
+        # write the key out to a file
+        home_path = expanduser("~")
+        key_path = os.path.join(home_path, ".BlockchainPKI/keys/")
+        if not os.path.exists(key_path):
+            print("Directory %s does not exist" % key_path)
+            cont = input("Would you like to create %s? (y/n): " % key_path)
+            if cont.strip() == 'y':
+                os.mkdir(key_path)
+                print("Created %s" % key_path)
+
+        file_out = open(os.path.join(key_path, "private.pem"), 'wb')
+        file_out.write(private_key.export_key())
+        print("Sucessfully wrote out new private RSA key to ~/.BlockchainPKI/keys/private.pem")
+
+        file_out = open(os.path.join(key_path, "public.pem"), 'wb')
+        file_out.write(private_key.publickey().export_key())
+        print("Successfully wrote out new public RSA key to ~/.BlockchainPKI/keys/public.pem")
+
         # Generate a public key from the private key we just created
         public_key = private_key.publickey()
         return private_key, public_key
@@ -327,6 +347,12 @@ class Client(object):
             return None
 
     def command_loop(self):
+        # Ensure that the auxillary data folder is set up
+        home_path = expanduser("~")
+        home_path = os.path.join(home_path, ".BlockchainPKI/")
+        if not os.path.exists(home_path):
+            os.mkdir(home_path)
+
         # Finished set up, enter command loop
         print("PKChain Client successfully set up. Type 'help' for a list of commands")
         while True:
@@ -343,14 +369,16 @@ class Client(object):
                 self.close()
                 break
             elif command[0] == 'register':
-                client_pub_key = input("Enter your public key (generator address):\n")
+                client_pub_key_path = input("Enter the path of your public key (generator address): ")
+                client_pub_key = open(client_pub_key_path, 'r')
                 name = input("Enter the name you would like to register to a public key: ")
-                reg_pub_key = input("Enter the public key you would like to register:\n")
+                reg_pub_key_path = input("Enter the path of the public key you would like to register: ")
+                reg_pub_key = open(reg_pub_key_path, 'r')
                 tx = self.pki_register(client_pub_key, name, reg_pub_key)
                 print("Inputs: ", json.loads(tx.inputs))
                 print("Outputs: ", json.loads(tx.outputs))
             elif command[0] == 'query':
-                client_pub_key = input("Enter your public key (generator address):\n")
+                client_pub_key = input("Enter the path of your public key (generator address): ")
                 name = input("Enter the name you would like to query for: ")
                 tx = self.pki_query(client_pub_key, name)
                 print("Inputs: ", json.loads(tx.inputs))
