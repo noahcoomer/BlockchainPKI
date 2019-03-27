@@ -10,6 +10,7 @@ import os, ssl, json, time, errno, socket, base64, pickle
 
 import validator
 import transaction
+import blockchain
 
 
 class Client(object):
@@ -122,7 +123,8 @@ class Client(object):
         '''
             Update blockchain to be current
         '''
-        return None
+        chain = blockchain.Blockchain()
+        return chain
 
     def pki_register(self, generator_public_key, name, public_key):
         '''
@@ -280,7 +282,7 @@ class Client(object):
         # For the RSA key generation, create your private key
         private_key = RSA.generate(modulus_length, Random.new().read)
 
-        # write the key out to a file
+        # create the key dir if not created
         home_path = expanduser("~")
         key_path = os.path.join(home_path, ".BlockchainPKI/keys/")
         if not os.path.exists(key_path):
@@ -290,10 +292,12 @@ class Client(object):
                 os.mkdir(key_path)
                 print("Created %s" % key_path)
 
+        # write out the private key
         file_out = open(os.path.join(key_path, "private.pem"), 'wb')
         file_out.write(private_key.export_key())
         print("Sucessfully wrote out new private RSA key to ~/.BlockchainPKI/keys/private.pem")
 
+        # write out the public key
         file_out = open(os.path.join(key_path, "public.pem"), 'wb')
         file_out.write(private_key.publickey().export_key())
         print("Successfully wrote out new public RSA key to ~/.BlockchainPKI/keys/public.pem")
@@ -308,7 +312,7 @@ class Client(object):
             Encrypt and sign a message
         '''
         #Serialize message object
-        serialized_message = pickle.dump(a_message)
+        serialized_message = pickle.dumps(a_message)
         # Set your public key as an encrpytor that will be using the PKCS1_OAEP cipher
         encryptor = PKCS1_OAEP.new(public_key)
         # Encrypt a message using your encryptor
@@ -330,18 +334,18 @@ class Client(object):
         # Decode your message using Base64 Encodings
         decoded_decrypted_msg = decryptor.decrypt(decoded_encrypted_msg)
         #Dserialize message object
-        deserialized_message = pickle.load(decoded_decrypted_msg)
+        deserialized_message = pickle.loads(decoded_decrypted_msg)
         return deserialized_message
 
     @staticmethod
     def verify_public_key(public_key):
         '''
             Verify a public key is correctly formatted by making an RSA key object
-            :params: public_key - a string or byte string of the public key to imported
+            :params: public_key - a file object of the public key to be verified
                     passphrase - if the key requires a passphrase use it, otherwise passphrase should be None
         '''
         try:
-            key = RSA.import_key(public_key)
+            key = RSA.import_key(public_key.read())
             return key
         except ValueError:
             return None
