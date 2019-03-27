@@ -1,11 +1,11 @@
 # PKI functionalty tests
 
-from data_structs import blockchain, block, transaction
-from network import client
 import json
 
 import sys
-sys.path.append('../')
+sys.path.append('../src/')
+import blockchain, block, transaction
+import client
 
 TEST_KEY_1 = """-----BEGIN PUBLIC KEY-----
                 MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDQYD1K9cQt+FLYL4WsiiuDhsE6
