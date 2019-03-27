@@ -10,14 +10,21 @@ import time
 class Block:
     def __init__(self, version=0.1, id=None, transactions=[], previous_hash=None, block_generator_address=None,
                  block_generation_proof=None, nonce=None, status=None):
+        
         # A version number to track software protocol upgrades
         self.version = version
         self.id = id                                      # Block index or block height
         self.transactions = transactions                # Transaction pool passed from the validator
         # A reference to the previous (parent) block in the chain
         self.previous_hash = previous_hash
+        # The list of hashes of raw transactions from transactions list
+        self.sha256_txs = []
         # A hash of the root of the Merkel tree of this block's transactions.
-        self.merkle_root = self.compute_merkle_root(self.transactions)
+        for tx in transactions:
+            tx_hash = tx.__hash__()
+            self.sha256_txs.append(tx_hash)
+
+        self.merkle_root = self.compute_merkle_root(self.sha256_txs)
         # Public key of the Validator node proposed and broadcast the block
         self.block_generator_address = block_generator_address
         # Aggregated signature of Block Generator & Validator
