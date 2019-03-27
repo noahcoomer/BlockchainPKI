@@ -5,6 +5,7 @@ This is the setup for our transaction which contains version, transaction_id, tr
 """
 
 import time
+import hashlib
 
 class Transaction:
 
@@ -42,15 +43,15 @@ class Transaction:
         pass
 
 
-    def __hash__(self):
-        return hash((self.version, self.transaction_type, self.tx_generator_address,
-                     self.inputs, self.outputs, self.lock_time, self.time_stamp))
+    def __hash__(self): # SHA256() ???
+        tx_info = "" + self.version + self.transaction_type + self.tx_generator_address + self.inputs + self.outputs + self.lock_time + self.time_stamp
+
+        hash_256 = hashlib.sha256(tx_info.encode()).hexdigest()
+        return hash_256
 
 
     def __eq__(self, other):
-        return self.version == other.version and self.transaction_type == other.transaction_type \
-               and self.inputs == other.inputs and self.outputs == other.outputs and \
-               self.lock_time == other.lock_time and self.time_stamp == other.time_stamp
+        return hash(self) == hash(other)
 
     
 
