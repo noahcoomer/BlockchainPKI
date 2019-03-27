@@ -33,7 +33,7 @@ class Client(object):
         
         # Update the blockchain
         print("Updating blockchain. This may take a while.")
-        self.update_blockchain()
+        self.blockchain = self.update_blockchain()
         print("Finished updating blockchain.")
         self.command_loop()
 
@@ -149,7 +149,7 @@ class Client(object):
             print("The register public key is incorrectly formatted. Please try again.")
             return -1
 
-        inputs = { "REGISTER" : { name : public_key } }
+        inputs = { "REGISTER" : { name : pub } }
 
         # Validate that the name is not already in the blockchain, break if found
         flag = False
@@ -184,7 +184,7 @@ class Client(object):
         outputs = json.dumps(outputs)
 
         # send the transaction and return it for std.out
-        tx = transaction.Transaction(transaction_type="Standard", tx_generator_address=generator_public_key, inputs=inputs, outputs=outputs)
+        tx = transaction.Transaction(transaction_type="Standard", tx_generator_address=gen, inputs=inputs, outputs=outputs)
         # Create an entry point to the validator network that the client can connect to
 
         ############## UNCOMMENT BEFORE GOING LIVE #################
@@ -236,7 +236,7 @@ class Client(object):
         inputs = json.dumps(inputs)
         outputs = json.dumps(outputs)
 
-        tx = transaction.Transaction(transaction_type="Standard", tx_generator_address=generator_public_key,
+        tx = transaction.Transaction(transaction_type="Standard", tx_generator_address=gen,
                                     inputs=inputs, outputs=outputs)
 
         ####### UNCOMMENT BEFORE PRODUCTION ########
@@ -346,7 +346,8 @@ class Client(object):
         '''
         try:
             key = RSA.import_key(public_key.read())
-            return key
+            key = key.publickey().export_key()
+            return key.decode()
         except ValueError:
             return None
 
@@ -379,14 +380,15 @@ class Client(object):
                 reg_pub_key_path = input("Enter the path of the public key you would like to register: ")
                 reg_pub_key = open(reg_pub_key_path, 'r')
                 tx = self.pki_register(client_pub_key, name, reg_pub_key)
-                print("Inputs: ", json.loads(tx.inputs))
-                print("Outputs: ", json.loads(tx.outputs))
+                print("\nInputs: ", json.loads(tx.inputs))
+                print("\nOutputs: ", json.loads(tx.outputs))
             elif command[0] == 'query':
-                client_pub_key = input("Enter the path of your public key (generator address): ")
+                client_pub_key_path = input("Enter the path of your public key (generator address): ")
+                client_pub_key = open(client_pub_key_path, 'r')
                 name = input("Enter the name you would like to query for: ")
                 tx = self.pki_query(client_pub_key, name)
-                print("Inputs: ", json.loads(tx.inputs))
-                print("Outputs: ", json.loads(tx.outputs))
+                print("\nInputs: ", json.loads(tx.inputs))
+                print("\nOutputs: ", json.loads(tx.outputs))
             elif command[0] == 'validate':
                 pass
             elif command[0] == 'update':
