@@ -1,11 +1,11 @@
 # PKI functionalty tests
 
+from data_structs import blockchain, block, transaction
+from network import client
 import json
 
 import sys
 sys.path.append('../')
-from network import client
-from data_structs import blockchain, block, transaction
 
 TEST_KEY_1 = """-----BEGIN PUBLIC KEY-----
                 MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDQYD1K9cQt+FLYL4WsiiuDhsE6
@@ -31,57 +31,59 @@ TEST_KEY_3 = """-----BEGIN PUBLIC KEY-----
                 -----END PUBLIC KEY-----
              """
 
+
 def register_transaction(name):
     _client = client.Client(name="test_client")
     _client.blockchain = create_test_chain()
-    #print(_client.blockchain.last_block.transactions)
+    # print(_client.blockchain.last_block.transactions)
     tx = _client.pki_register(TEST_KEY_1, name, TEST_KEY_1)
     try:
         if tx == -1:
             print("Exited with error.")
             return
     except:
-        #print_transaction_info(tx)
+        # print_transaction_info(tx)
         return tx
 
 
 def query_transaction(query):
     _client = client.Client(name="test_client")
     _client.blockchain = create_test_chain()
-    #print(_client.blockchain.last_block.transactions)
+    # print(_client.blockchain.last_block.transactions)
     tx = _client.pki_query(TEST_KEY_1, query)
     try:
         if tx == -1:
             print("Exited with error.")
             return
     except:
-        #print_transaction_info(tx)
+        # print_transaction_info(tx)
         return tx
 
 
 def create_test_chain():
     chain = blockchain.Blockchain()
-    
-    inp_1 = { "REGISTER" : { "name": "noah_coomer", "public_key" : TEST_KEY_1 } }
+
+    inp_1 = {"REGISTER": {"name": "noah_coomer", "public_key": TEST_KEY_1}}
     inp_1 = json.dumps(inp_1)
     tx_1 = transaction.Transaction(inputs=inp_1)
-    
-    inp_2 = { "REGISTER" : { "name": "lebron_james", "public_key" : TEST_KEY_2 } }
+
+    inp_2 = {"REGISTER": {"name": "lebron_james", "public_key": TEST_KEY_2}}
     inp_2 = json.dumps(inp_2)
     tx_2 = transaction.Transaction(inputs=inp_2)
 
-    inp_3 = { "REGISTER" : { "name": "ben_simmons", "public_key" : TEST_KEY_3 } }
+    inp_3 = {"REGISTER": {"name": "ben_simmons", "public_key": TEST_KEY_3}}
     inp_3 = json.dumps(inp_3)
     tx_3 = transaction.Transaction(inputs=inp_3)
 
     txs = [tx_1, tx_2, tx_3]
-    new_block = block.Block(transactions=txs, previous_hash=chain.last_block.hash)
+    new_block = block.Block(
+        transactions=txs, previous_hash=chain.last_block.hash)
     success = chain.add_block(new_block, new_block.hash)
     if success:
         return chain
     else:
         print("Error")
-    
+
 
 def print_transaction_info(tx):
     print("Transaction Info")
