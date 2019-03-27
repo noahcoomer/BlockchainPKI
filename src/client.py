@@ -84,20 +84,20 @@ class Client(object):
             self.context.load_verify_locations(
                 capath=capath or self.validators_capath)
 
-    def send_transaction(self, validator, tx):
+    def send_transaction(self, val, tx):
         '''
             Send a transaction to the validator network
 
             :param Transaction tx: The transaction to send
         '''
         #
-        if self.net and self != validator:
+        if self.net and self != val:
             # Connect to validators's inbound net using client's outbound net
-            address = validator.address
+            address = val.address
             # Serialize the transaction as a bytes object
             txn = pickle.dumps(tx)
             # Create a new socket (the outbound net)
-            print("Attempting to send to %s:%s" % validator.address)
+            print("Attempting to send to %s:%s" % val.address)
             with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                 s.setblocking(True)
                 try:
@@ -115,7 +115,7 @@ class Client(object):
         else:
             raise Exception(
                 "The validator must be initialized and listening for connections")
-        pass
+        
 
     def update_blockchain(self):
         '''
