@@ -139,10 +139,26 @@ class Validator(object):
                         print("Received data from %s:%d: %s" %
                               (addr[0], addr[1], decoded_transaction))
                         # check if this transaction is in mempool
+                        self.add_transaction(decoded_transaction)
                         # broadcast to network
                         return decoded_transaction
         except socket.timeout:
             pass
+
+
+    def add_transaction(self, transaction):
+        '''
+            Receive incoming transactions and add to mempool
+        '''
+        if transaction == 'YES':
+            pass
+        elif transaction == 'NO':
+            pass
+        else:
+            if transaction not in self.mempool:
+                transaction.status = "OPEN"
+                self.mempool.append(transaction)
+
 
     def message(self, v, msg):
         '''
@@ -211,11 +227,22 @@ class Validator(object):
 
         sha256_txs = self.hash_tx(transactions)
         calculated_merkle_root = self.compute_merkle_root(sha256_txs)
+
+        # ============Test Data====================
+        Alice = Validator(port=1234, cafile="/mnt/c/Users/owner/Documents/University of Memphis/Capstone Project/workspace/blockchainPKI/rootCA.pem",
+    keyfile="/mnt/c/Users/owner/Documents/University of Memphis/Capstone Project/workspace/blockchainPKI/rootCA.key")
+        Marshal = Validator(name="marshal-mbp.memphis.edu",
+                       addr="10.101.70.197", port=7123, bind=False)
+        Brandon = Validator(name="brandonsmacbook.memphis.edu",
+                       addr="10.102.114.244", bind=False)
         
         if calculated_merkle_root == merkel_root:
-            print("Send to the other validators YES")
+            Alice.message(Marshal, "YES")
+            Alice.message(Brandon, "YES")
         else:
-            print("Send to the other validators NO")
+            Alice.message(Marshal, "NO")
+            Alice.message(Brandon, "NO")
+        # ============Test Data====================
     
 
     # Return a list of hashed transactions

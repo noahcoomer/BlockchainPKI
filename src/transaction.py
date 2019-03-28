@@ -39,7 +39,7 @@ class Transaction:
         # self.username = username  # username for the client
         # self.public_key = public_key  # public key of the client
         # self.proof = proof  # proof
-        self.traction_status = "open" # Open/Pending/Complete
+        self.status = "OPEN" # Open/Pending/Complete
         
 
     def admin_tx(self, round_change, leader_selection):
