@@ -2,7 +2,7 @@ from random import randint
 from threading import Thread
 # from Crypto.Signature import PKCS1_v1_5
 # from data import transaction
-
+import hashlib
 import os
 import ssl
 import time
@@ -32,7 +32,7 @@ class Validator(object):
             :param str keyfile: The path to the private key
             :param str validators_capath: The directory to where other Validators CAs are saved
         '''
-        self.name = name or socket.getfqdn(socket.gethostbyname())
+        self.name = name or socket.getfqdn(socket.gethostname())
         self.address = addr, port
         self.bound = bind
 
@@ -180,7 +180,7 @@ class Validator(object):
                 except socket.error as e:
                     print(e)
                 finally:
-                    secure_conn.shutdown(socket.SHUT_RDWR)
+                    # secure_conn.shutdown(socket.SHUT_RDWR)
                     secure_conn.close()
         else:
             raise Exception(
@@ -195,14 +195,87 @@ class Validator(object):
             self.net.close()
 
 
+    # Get the merkel root from the block.
+    # Recalculate the merkel root from the pool. When the Block Generator is chosen
+    # from Round Robin Algorithm, he/she will send the update to all of the validator
+    # nodes. The update will contain the first and last position of the proposed 
+    # transactions (transactions inside a new block in propose status) inside the pool 
+    # 
+    # Use the position to pull the transactions from the local pool and recalculate the
+    # merkel root. Compare the new block's merkel root with recalculated merkel root. If they
+    # are the same then send YES.
+    def verify_txs_from_merkel_root(self, merkel_root, first, last):
+        transactions = []
+        for i in range(first, last+1):
+            transactions.append(self.mempool[i])
+
+        sha256_txs = self.hash_tx(transactions)
+        calculated_merkle_root = self.compute_merkle_root(sha256_txs)
+        
+        if calculated_merkle_root == merkel_root:
+            print("Send to the other validators YES")
+        else:
+            print("Send to the other validators NO")
+    
+
+    # Return a list of hashed transactions
+    def hash_tx(self, transaction):
+        sha256_txs = []
+        # A hash of the root of the Merkel tree of this block's transactions.
+        for tx in transaction:
+            tx_hash = tx.__hash__()
+            sha256_txs.append(tx_hash)
+
+        return sha256_txs
+
+
+    # Return the root of the hash tree of all the transactions in the block's transaction pool (Recursive Function)
+    # Assuming each transaction in the transaction pool was HASHed in the Validator class (Ex: encode with binascii.hexlify(b'Blaah'))
+    # The number of the transactions hashes in the pool has to be even. 
+    # If the number is odd, then hash the last item of the list twice
+    def compute_merkle_root(self, transactions):
+        # If the length of the list is 1 then return the final hash
+        if len(transactions) == 1:
+            return transactions[0]
+
+        new_tx_hashes = []
+
+        for tx_id in range(0, len(transactions)-1, 2):  # for(t_id = 0, t_id < len(transactions) - 1, t_id = t_id + 2)
+            
+            tx_hash = self.hash_2_txs(transactions[tx_id], transactions[tx_id+1])
+            new_tx_hashes.append(tx_hash)
+
+        # if the number of transactions is odd then hash the last item twice
+        if len(transactions % 2 == 1):
+            tx_hash = self.hash_2_txs(transactions[-1], transactions[-1])
+            new_tx_hashes.append(tx_hash)
+
+        return self.compute_merkle_root(new_tx_hashes)
+
+    # Hash two hashes together -> return 1 final hash
+    def hash_2_txs(self, hash1, hash2):
+        # Reverse inputs before and after hashing because of the big-edian and little-endian problem
+        h1 = hash1.hexdigest()[::-1]
+        h2 = hash2.hexdigest()[::-1]
+        hash_return = hashlib.sha256((h1+h2).encode())
+
+        return hash_return.hexdigest()[::-1]
+
+
 if __name__ == "__main__":
-    Alice = Validator(name="Alice", port=1234)
+    Alice = Validator(port=1234, cafile="/mnt/c/Users/owner/Documents/University of Memphis/Capstone Project/workspace/blockchainPKI/rootCA.pem",
+    keyfile="/mnt/c/Users/owner/Documents/University of Memphis/Capstone Project/workspace/blockchainPKI/rootCA.key")
     Bob = Validator(name="Bob", addr="10.102.15.201", port=1234, bind=False)
+    Marshal = Validator(name="marshal-mbp.memphis.edu",
+                       addr="10.101.70.197", port=7123, bind=False)
+    Brandon = Validator(name="brandonsmacbook.memphis.edu",
+                       addr="10.102.114.244", bind=False)
 
     try:
         while True:
             # Receives incoming transactions
-            Alice.message(Bob, "Hello, Bob. This is Alice.")
+            #Alice.message(Marshal, "Hello, Marshal. This is Dung Le.")
+            Alice.receive()
             time.sleep(0.5)
     except KeyboardInterrupt:
         Alice.close()

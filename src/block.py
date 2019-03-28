@@ -13,7 +13,7 @@ class Block:
         
         # A version number to track software protocol upgrades
         self.version = version
-        self.id = id                                      # Block index or block height
+        self.id = id                   # Block index or block height
         self.transactions = transactions                # Transaction pool passed from the validator
         # A reference to the previous (parent) block in the chain
         self.previous_hash = previous_hash
@@ -38,7 +38,7 @@ class Block:
         self.t_counter = len(transactions)
         self.timestamp = int(time.time())            # Creation time of this block
         # The hash of the block header
-        self.hash = hash(self)
+        self.hash = self.__hash__()
 
     
     # Return the root of the hash tree of all the transactions in the block's transaction pool (Recursive Function)
@@ -65,9 +65,6 @@ class Block:
         return self.compute_merkle_root(new_tx_hashes)
 
 
-        #tx_hashes = tuple(tx_hashes)
-        #return hash(new_tx_hashes)
-
     # Hash two hashes together -> return 1 final hash
     def hash_2_txs(self, hash1, hash2):
         # Reverse inputs before and after hashing because of the big-edian and little-endian problem
@@ -76,6 +73,9 @@ class Block:
         hash_return = hashlib.sha256((h1+h2).encode())
 
         return hash_return.hexdigest()[::-1]
+
+
+    
 
 
     def __hash__(self): # SHA256() ???
