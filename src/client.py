@@ -29,13 +29,13 @@ class Client(object):
         self.address = addr, port 
         self.validators_capath = validators_capath
         self._init_net()
-        self._load_other_ca(capath=self.validators_capath)
+       # self._load_other_ca(capath=self.validators_capath)
         
         # Update the blockchain
         print("Updating blockchain. This may take a while.")
         self.blockchain = self.update_blockchain()
         print("Finished updating blockchain.")
-        self.command_loop()
+        #self.command_loop()
 
     def _init_net(self):
         '''
@@ -282,7 +282,7 @@ class Client(object):
                 inputs = json.loads(tx.inputs)
                 for key in inputs.keys():
                     try:
-                        if name == inputs[key]['name'] and old_public_key == inputs[key]['public_key']
+                        if name == inputs[key]['name'] and old_public_key == inputs[key]['public_key']:
                             flag = True
                     except:
                         continue
@@ -337,7 +337,7 @@ class Client(object):
 
         # create the key dir if not created
         home_path = expanduser("~")
-        key_path = os.path.join(home_path, ".BlockchainPKI/keys/")
+        key_path = os.path.join(home_path, ".BlockchainPKI","keys")
         if not os.path.exists(key_path):
             print("Directory %s does not exist" % key_path)
             cont = input("Would you like to create %s? (y/n): " % key_path)

@@ -31,12 +31,13 @@ TEST_KEY_3 = """-----BEGIN PUBLIC KEY-----
                 -----END PUBLIC KEY-----
              """
 
+test_key_path = open("/Users/ryant/.BlockchainPKI/keys/public.pem", "r")
 
 def register_transaction(name):
     _client = client.Client(name="test_client")
     _client.blockchain = create_test_chain()
     # print(_client.blockchain.last_block.transactions)
-    tx = _client.pki_register(TEST_KEY_1, name, TEST_KEY_1)
+    tx = _client.pki_register(test_key_path, name, test_key_path)
     try:
         if tx == -1:
             print("Exited with error.")
@@ -50,7 +51,7 @@ def query_transaction(query):
     _client = client.Client(name="test_client")
     _client.blockchain = create_test_chain()
     # print(_client.blockchain.last_block.transactions)
-    tx = _client.pki_query(TEST_KEY_1, query)
+    tx = _client.pki_query(test_key_path, query)
     try:
         if tx == -1:
             print("Exited with error.")
