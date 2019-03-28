@@ -17,6 +17,7 @@ what does update, revoke is for , and query?
 
 import time
 import hashlib
+import pickle
 
 class Transaction:
 
@@ -34,11 +35,12 @@ class Transaction:
         # a unix timestamp or block number-locktime defines the earlier time that a transaction can be added
         self.lock_time = lock_time
         self.time_stamp = int(time.time())  # transaction generation time
+        self.transaction_id = self.compute_hash()
         # self.username = username  # username for the client
         # self.public_key = public_key  # public key of the client
         # self.proof = proof  # proof
         self.traction_status = "open" # Open/Pending/Complete
-        self.transaction_id = self.__hash__()
+        
 
     def admin_tx(self, round_change, leader_selection):
         if leader_selection == True:
@@ -55,15 +57,19 @@ class Transaction:
         pass
 
 
-    def __hash__(self): # SHA256() ???
-        tx_info = "" + self.version + self.transaction_type + self.tx_generator_address + self.inputs + self.outputs + self.lock_time + self.time_stamp
-
+    def compute_hash(self): 
+        tx_info = str(self)
         hash_256 = hashlib.sha256(tx_info.encode()).hexdigest()
         return hash_256
 
 
     def __eq__(self, other):
         return hash(self) == hash(other)
+
+    
+    def __str__(self):
+        bit_str = str(pickle.dumps(self))
+        return bit_str
 
     
 

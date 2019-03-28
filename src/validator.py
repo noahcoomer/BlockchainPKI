@@ -223,7 +223,7 @@ class Validator(object):
         sha256_txs = []
         # A hash of the root of the Merkel tree of this block's transactions.
         for tx in transaction:
-            tx_hash = tx.__hash__()
+            tx_hash = tx.compute_hash()
             sha256_txs.append(tx_hash)
 
         return sha256_txs
