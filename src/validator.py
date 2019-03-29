@@ -28,11 +28,11 @@ class Validator(object):
             :param str bind_addr: The ip address to bind to for serving inbound connections
             :param int bind_port: The port to bind to for serving inbound connections
             :param bool bind: Whether or not to bind to (addr, port)
-            :param str cafile: The path to the CA 
+            :param str cafile: The path to the CA
             :param str keyfile: The path to the private key
             :param str validators_capath: The directory to where other Validators CAs are saved
         '''
-        self.name = name or socket.getfqdn(socket.gethostbyname())
+        self.name = name or socket.getfqdn(socket.gethostname())
         self.address = addr, port
         self.bound = bind
 
@@ -96,16 +96,21 @@ class Validator(object):
         if os.path.exists(cafile) and os.path.exists(keyfile):
             self.receive_context.load_cert_chain(
                 certfile=cafile, keyfile=keyfile)
+            print("Root CA and key loaded from %s and %s." % (cafile, keyfile))
         else:
             raise FileNotFoundError(
                 "Either %s or %s does not exist. Please generate a CA and private key." % (cafile, keyfile))
 
     def _load_other_ca(self, capath=None):
         '''
-            Loads a set of CAs from a directory 
+            Loads a set of CAs from a directory
             into the sending context
         '''
         assert self.send_context != None, "Initialize the send context before loading CAs."
+
+        if capath == None:
+            # This is the default path to the cafiles if nothing is entered
+            capath = self.validators_capath
 
         capath = capath.replace("~", os.environ["HOME"])
 
@@ -113,14 +118,20 @@ class Validator(object):
             print("Directory %s does not exist" % capath)
             cont = input("Would you like to create %s? (y/n)" % capath)
             if cont.strip() == 'y':
-                os.mkdir(capath)
+                os.makedirs(capath)
                 print("Created %s" % capath)
         elif len(os.listdir(capath)) == 0:
             raise FileNotFoundError(
                 "No other Validator CAs were found at %s. You will be unable to send any data without them." % capath)
         else:
-            self.send_context.load_verify_locations(
-                capath=capath or self.validators_capath)
+            cafiles = [path for path in os.listdir(
+                capath) if path.endswith('.pem')]
+            print("Loaded %d certificates from %s" %
+                  (len(cafiles), capath))
+
+            for path in cafiles:
+                abspath = os.path.join(capath, path)
+                self.send_context.load_verify_locations(abspath)
 
     def receive(self):
         '''
@@ -128,19 +139,23 @@ class Validator(object):
         '''
         try:
             conn, addr = self.net.accept()
-            # add this connection to a dictionary of incoming connections
+            print("Connection from %s:%d" % (addr[0], addr[1]))
+            DATA = bytearray()  # used to store the incoming data
             with self.receive_context.wrap_socket(conn, server_side=True) as secure_conn:
-                data = ''
-                while True:
-                    data += secure_conn.recv(BUFF_SIZE)
-                    if not data:
-                        # Deserialize the entire object when data reception has ended
-                        decoded_transaction = pickle.loads(data)
-                        print("Received data from %s:%d: %s" %
-                              (addr[0], addr[1], decoded_transaction))
-                        # check if this transaction is in mempool
-                        # broadcast to network
-                        return decoded_transaction
+                # Receive the initial BUFF_SIZE chunk of data
+                data = secure_conn.recv(BUFF_SIZE)
+                while data:
+                    # Continue receiving chunks of the data until the buffer is empty
+                    # (until the client sends empty data)
+                    DATA += data
+                    data = secure_conn.recv(BUFF_SIZE)
+                # Deserialize the entire object when data reception has ended
+                decoded_transaction = pickle.loads(DATA)
+                print("Received data from %s:%d: %s" %
+                      (addr[0], addr[1], decoded_transaction))
+                # check if this transaction is in mempool
+                # broadcast to network
+                return decoded_transaction
         except socket.timeout:
             pass
 
@@ -158,52 +173,47 @@ class Validator(object):
         if self.net and self != v:
             # Connect to v's inbound net using self's outbound net
             address = v.address
-            if not isinstance(msg, str):
-                raise TypeError(
-                    "msg should be of type str, not %s" % type(msg))
-            else:
-                if isinstance(msg, str):
-                    msg = msg.encode()  # encode the msg to binary
-                print("Attempting to send to %s:%s" % v.address)
-                secure_conn = self.send_context.wrap_socket(socket.socket(
-                    socket.AF_INET, socket.SOCK_STREAM), server_hostname=v.name)
-                secure_conn.settimeout(0.001)
-                try:
-                    secure_conn.connect(address)  # Connect to v
-                    # Send the entirety of the message
-                    secure_conn.sendall(msg)
-                except OSError as e:
-                    # Except cases for if the send fails
-                    if e.errno == errno.ECONNREFUSED:
-                        print(e)
-                        # return -1, e
-                except socket.error as e:
+            if isinstance(msg, str):
+                msg = msg.encode()  # encode the msg to binary
+            print("Attempting to send to %s:%s" % v.address)
+            secure_conn = self.send_context.wrap_socket(
+                socket.socket(socket.AF_INET, socket.SOCK_STREAM), server_hostname=v.name)
+            try:
+                secure_conn.connect(address)  # Connect to v
+                # Send the entirety of the message
+                secure_conn.sendall(msg)
+            except OSError as e:
+                # Except cases for if the send fails
+                if e.errno == errno.ECONNREFUSED:
                     print(e)
-                finally:
-                    secure_conn.shutdown(socket.SHUT_RDWR)
-                    secure_conn.close()
+            except socket.error as e:
+                print(e)
+            finally:
+                secure_conn.close()
         else:
             raise Exception(
                 "The net must be initialized and listening for connections")
 
     def close(self):
         '''
-            Closes a Validator and its net
+            Closes a Validator and its net. Ignores Validators whose nets are not bound.
         '''
-        if self.bound and self.net != None:
-            # Close socket
+        if self.bound:
             self.net.close()
 
 
 if __name__ == "__main__":
-    Alice = Validator(name="Alice", port=1234)
-    Bob = Validator(name="Bob", addr="10.102.15.201", port=1234, bind=False)
+    Alice = Validator(port=1234)
+    Bob = Validator(name="ubuntu-xenial", addr="127.0.0.1",
+                    port=6666, bind=False)
 
+    transaction = pickle.dumps({'msg': 'Hello! Is this thing on?',
+                                'x': 'Any serialized object can be sent.',
+                                'could_be': 'This could be a transaction!'})
     try:
         while True:
-            # Receives incoming transactions
-            Alice.message(Bob, "Hello, Bob. This is Alice.")
-            time.sleep(0.5)
+            # Send the serialized object to Guest
+            Alice.message(Bob, transaction)
+            time.sleep(1)
     except KeyboardInterrupt:
         Alice.close()
-        Bob.close()
