@@ -31,7 +31,7 @@ TEST_KEY_3 = """-----BEGIN PUBLIC KEY-----
                 -----END PUBLIC KEY-----
              """
 
-test_key_path = open("/Users/ryant/.BlockchainPKI/keys/public.pem", "r")
+test_key_path = open("C:/Users/ryant/.BlockchainPKI/keys/public.pem","r")
 
 def register_transaction(name):
     _client = client.Client(name="test_client")

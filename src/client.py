@@ -35,7 +35,7 @@ class Client(object):
         print("Updating blockchain. This may take a while.")
         self.blockchain = self.update_blockchain()
         print("Finished updating blockchain.")
-        #self.command_loop()
+        self.command_loop()
 
     def _init_net(self):
         '''
@@ -246,8 +246,23 @@ class Client(object):
 
     def pki_validate(self, generator_public_key, name, public_key):
         '''
-
+        enable the user to check whether the name and public key are valid
+        return true if it is valid and false if it is not valid
         '''
+        gen = self.verify_public_key(generator_public_key)
+        if not gen:
+            print("The generator public key is incorrectly formatted. Please try again.")
+            return - 1
+
+        pub = self.verify_public_key(public_key)
+        if not pub:
+            print("The register public key is incorrectly formatted. Please try again.")
+            return -1
+        
+        if len(name) < 1 or len(name) > 255:
+            print("The name value must be between 1-255 characters.")
+            return -1 
+            
         tx = transaction.Transaction()
 
         self.send_transaction(tx)
@@ -278,7 +293,7 @@ class Client(object):
 
         flag = False
         for block in self.blockchain.chain:
-            for tx in block.transaction:
+            for tx in block.transactions:
                 inputs = json.loads(tx.inputs)
                 for key in inputs.keys():
                     try:
@@ -293,26 +308,27 @@ class Client(object):
         
 
         # Create the input for the update, for the input we have the name, old_public_key and the new_public_key 
-        inputs = {'UPDATE': {'name': name, 'old_public_key': old_public_key, 'new_public_key': new_public_key}}
+        inputs = { "UPDATE" : { "name" : name, "old_public_key" : old_key, "new_public_key" : new_key } }
 
         # Create the output for the update 
         outputs = dict()
          
         if flag == True:
-            outputs = {'UPDATE': {'success': True, 'update': True, 'new_public_key': new_public_key}}
+            outputs = { "UPDATE" : { "success" : True, "update" : True, "new_public_key" : new_key } }
         else:
-            outputs = {'UPDATE': {'success': False, 'message': 'cannot find the name and old public key'}}
+            outputs = { "UPDATE" : { "success" : False, "message" : "cannot find the name and old public key" } }
 
 
         #dumps to JSON
-        json.dumps(inputs)
-        json.dumps(outputs)
+        inputs = json.dumps(inputs)
+        outputs = json.dumps(outputs)
+
         '''
         this means that we found the name and the old_public_key in one of the transactions
         Goal: need to add a new transaction that will have the same name but with a new public key 
         '''
         tx = transaction.Transaction(transaction_type='standard', inputs= inputs, outputs= outputs)
-        self.send_transaction(tx)
+        #self.send_transaction(tx)
         return tx
 
     def pki_revoke(self, public_key, private_key):
@@ -445,7 +461,14 @@ class Client(object):
             elif command[0] == 'validate':
                 pass
             elif command[0] == 'update':
-                pass
+                new_client_pub_key_path = input("Enter the path of your new public key (generator address): " )
+                new_client_pub_key = open(new_client_pub_key_path, "r")
+                old_client_pub_key_path = input("enter the path of your old public key (generator address): ")
+                old_client_pub_key = open(old_client_pub_key_path, "r")
+                name = input('Enter the name you would like to update: ')
+                tx = self.pki_update(name, old_client_pub_key, new_client_pub_key)
+                print("\nInputs: ", json.loads(tx.inputs))
+                print("\nOutputs: ", json.loads(tx.outputs))
             elif command[0] == 'revoke':
                 pass
             elif command[0] == 'generate':
