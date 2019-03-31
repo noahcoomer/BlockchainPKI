@@ -228,7 +228,7 @@ class Validator(object):
             self.net.close()
 
 
-    # Get the merkel root from the block.
+    ''' # Get the merkel root from the block.
     # Recalculate the merkel root from the pool. When the Block Generator is chosen
     # from Round Robin Algorithm, he/she will send the update to all of the validator
     # nodes. The update will contain the first and last position of the proposed 
@@ -236,8 +236,20 @@ class Validator(object):
     # 
     # Use the position to pull the transactions from the local pool and recalculate the
     # merkel root. Compare the new block's merkel root with recalculated merkel root. If they
-    # are the same then send YES.
-    def verify_txs_from_merkel_root(self, merkel_root, first, last):
+    # are the same then send YES. '''
+    def verify_txs_from_merkel_root(self, merkel_root, first, last, validators):
+        '''
+        params - merkel_root - the merkel root created by the block generator from 
+                               the new block
+
+        params: first - the position of the transaction in the mempool, but in the 
+                        new block, it is considered the first transaction
+
+        params: last - the position of the transaction in the mempool, but in the 
+                       new block, it is considered the last transaction
+
+        params: validators - list of validators
+        '''
         transactions = []
         for i in range(first, last+1):
             transactions.append(self.mempool[i])
@@ -248,17 +260,16 @@ class Validator(object):
         # ============Test Data====================
         Alice = Validator(port=1234, cafile="/mnt/c/Users/owner/Documents/University of Memphis/Capstone Project/workspace/blockchainPKI/rootCA.pem",
     keyfile="/mnt/c/Users/owner/Documents/University of Memphis/Capstone Project/workspace/blockchainPKI/rootCA.key")
-        Marshal = Validator(name="marshal-mbp.memphis.edu",
-                       addr="10.101.70.197", port=7123, bind=False)
-        Brandon = Validator(name="brandonsmacbook.memphis.edu",
-                       addr="10.102.114.244", bind=False)
-        
-        if calculated_merkle_root == merkel_root:
-            Alice.message(Marshal, "YES")
-            Alice.message(Brandon, "YES")
-        else:
-            Alice.message(Marshal, "NO")
-            Alice.message(Brandon, "NO")
+        # Marshal = Validator(name="marshal-mbp.memphis.edu",
+        #                addr="10.101.70.197", port=7123, bind=False)
+        # Brandon = Validator(name="brandonsmacbook.memphis.edu",
+        #                addr="10.102.114.244", bind=False)
+        for v in validators:
+            if calculated_merkle_root == merkel_root:
+                Alice.message(v, "YES")
+            else:
+                Alice.message(v, "NO")
+            
         # ============Test Data====================
     
 
