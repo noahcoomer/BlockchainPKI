@@ -125,6 +125,9 @@ class Validator(object):
     def receive(self):
         '''
             Receive thread; handles incoming transactions
+            Add the incoming transaction into the pool. If after 10 seconds
+            the number of transactions is 10 then call the Round Robin to chose 
+            Block Generator (Leader)
         '''
         try:
             conn, addr = self.net.accept()
@@ -138,9 +141,17 @@ class Validator(object):
                         decoded_transaction = pickle.loads(data)
                         print("Received data from %s:%d: %s" %
                               (addr[0], addr[1], decoded_transaction))
+
                         # check if this transaction is in mempool
+                        start_time = int(time.time())
+                        # Add transaction to the pool
                         self.add_transaction(decoded_transaction)
+                        end_time = int(time.time())
+                        if (end_time - start_time) >= 10 and len(self.mempool) >= 10:
+                            print("Call Round Robin to chose the leader")
+                        
                         # broadcast to network
+
                         return decoded_transaction
         except socket.timeout:
             pass
@@ -158,6 +169,7 @@ class Validator(object):
             if transaction not in self.mempool:
                 transaction.status = "OPEN"
                 self.mempool.append(transaction)
+                
 
 
     def message(self, v, msg):
