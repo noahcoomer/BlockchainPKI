@@ -435,6 +435,8 @@ class Client(object):
                 print("Transactional Functions:\n\n ")
                 print("register                         -Register a name and public key on the blockchain.")
                 print("query                            -Query for a public key given a name.\n\n")
+                print("validate                         -verifies whether a pair of (name, public key) is valid or not")
+                print("update                           -Update a user's public key")
                 print("Local Functions:\n\n")
                 print("generate                         -Generate a public and private key pair.")
                 print("encrypt <public_key> <message>   -Encrypt a message with a public key.")
@@ -459,7 +461,14 @@ class Client(object):
                 print("\nInputs: ", json.loads(tx.inputs))
                 print("\nOutputs: ", json.loads(tx.outputs))
             elif command[0] == 'validate':
-                pass
+                client_pub_key_path = input("Enter the path of your public key (generator address): ")
+                client_pub_key = open(client_pub_key_path, "r")
+                reg_pub_key_path = input("Enter the path of the public key you would like to register: ")
+                reg_pub_key_path = open(reg_pub_key_path, "r")
+                name = input("Enter the name you would like to validate: ")
+                tx = self.pki_validate(client_pub_key, name, reg_pub_key)
+                print("\nInputs: ", json.loads(tx.inputs))
+                print("\nOutputs: ", json.loads(tx.outputs))
             elif command[0] == 'update':
                 new_client_pub_key_path = input("Enter the path of your new public key (generator address): " )
                 new_client_pub_key = open(new_client_pub_key_path, "r")
