@@ -162,10 +162,10 @@ class Validator(object):
                 # check if this transaction is in mempool
                 if decoded_transaction not in self.mempool:
                     self.mempool.append(decoded_transaction)
-                
+
                 # broadcast to network
 
-                #return decoded_transaction
+                # return decoded_transaction
         except socket.timeout:
             pass
 
@@ -212,7 +212,7 @@ class Validator(object):
         for addr in self.connections:
             ip, port = addr
             name = "val-" + str(i)
-            receiver = Validator(name=name, addr=ip, port=port)
+            receiver = Validator(name=name, addr=ip, port=port, bind=False)
             self.message(receiver, message)
 
     def close(self):
@@ -229,8 +229,8 @@ if __name__ == "__main__":
                     port=6666, bind=False)
 
     tx = pickle.dumps({'msg': 'Hello! Is this thing on?',
-                                'x': 'Any serialized object can be sent.',
-                                'could_be': 'This could be a transaction!'})
+                       'x': 'Any serialized object can be sent.',
+                       'could_be': 'This could be a transaction!'})
     try:
         while True:
             # Send the serialized object to Guest
