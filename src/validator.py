@@ -337,12 +337,11 @@ class Validator(object):
 
 if __name__ == "__main__":
     Alice = Validator(port=1234)
-    Bob = Validator(name="ubuntu-xenial", addr="127.0.0.1",
-                    port=6666, bind=False)
+    Bob = Validator(name="brandonsmacbook.memphis.edu", addr="10.102.126.71",
+                    port=1234, bind=False)
 
-    tx = pickle.dumps({'msg': 'Hello! Is this thing on?',
-                       'x': 'Any serialized object can be sent.',
-                       'could_be': 'This could be a transaction!'})
+    tx = pickle.dumps(Transaction(version=0.1, transaction_type='regular', tx_generator_address='0.0.0.0',
+                                  inputs='', outputs='', lock_time=1234))
     try:
         while True:
             # Send the serialized object to Bob
