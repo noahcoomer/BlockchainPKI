@@ -3,6 +3,8 @@ from threading import Thread
 # from Crypto.Signature import PKCS1_v1_5
 # from data import transaction
 import hashlib
+from transaction import Transaction
+
 import os
 import ssl
 import time
@@ -38,6 +40,9 @@ class Validator(object):
 
         # Buffer to store incoming transactions
         self.mempool = []
+
+        # Buffer to store connection objects
+        self.connections = []
 
         if bind:
             self.cafile = cafile
@@ -156,6 +161,9 @@ class Validator(object):
                 decoded_transaction = pickle.loads(DATA)
                 print("Received data from %s:%d: %s" %
                       (addr[0], addr[1], decoded_transaction))
+                #########
+
+                print(type(decoded_transaction) == Transaction)
                 # check if this transaction is in mempool
                 start_time = int(time.time())
                 # Add transaction to the pool
@@ -165,7 +173,8 @@ class Validator(object):
                     print("Call Round Robin to chose the leader")
                     
                 # broadcast to network
-                return decoded_transaction
+
+                #return decoded_transaction
         except socket.timeout:
             pass
 
@@ -219,6 +228,17 @@ class Validator(object):
         else:
             raise Exception(
                 "The net must be initialized and listening for connections")
+
+    def broadcast(self, message):
+        '''
+            Broadcast a message to every other validator that is connected to this node
+        '''
+        i = 0
+        for addr in self.connections:
+            ip, port = addr
+            name = "val-" + str(i)
+            receiver = Validator(name=name, addr=ip, port=port)
+            self.message(receiver, message)
 
     def close(self):
         '''
@@ -329,13 +349,13 @@ if __name__ == "__main__":
     Bob = Validator(name="ubuntu-xenial", addr="127.0.0.1",
                     port=6666, bind=False)
 
-    transaction = pickle.dumps({'msg': 'Hello! Is this thing on?',
+    tx = pickle.dumps({'msg': 'Hello! Is this thing on?',
                                 'x': 'Any serialized object can be sent.',
                                 'could_be': 'This could be a transaction!'})
     try:
         while True:
             # Send the serialized object to Guest
-            Alice.message(Bob, transaction)
+            Alice.message(Bob, tx)
             time.sleep(1)
     except KeyboardInterrupt:
         Alice.close()

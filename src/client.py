@@ -29,13 +29,7 @@ class Client(object):
         self.address = addr, port 
         self.validators_capath = validators_capath
         self._init_net()
-        self._load_other_ca(capath=self.validators_capath)
         
-        # Update the blockchain
-        print("Updating blockchain. This may take a while.")
-        self.blockchain = self.update_blockchain()
-        print("Finished updating blockchain.")
-        self.command_loop()
 
     def _init_net(self):
         '''
@@ -223,7 +217,7 @@ class Client(object):
         inputs = { "QUERY" : { "name" : name } }
         outputs = dict()
         if public_key:
-            outputs = { "QUERY" : { "success": True, "query" : True, "public_key" : public_key } }
+            outputs = { "QUERY" : { "success": True, "public_key" : public_key } }
         else:
             outputs = { "QUERY" :
                             {
@@ -253,7 +247,7 @@ class Client(object):
         self.send_transaction(tx)
         return tx
 
-    def pki_update(self, name, old_public_key, new_public_key):
+    def pki_update(self, generator_public_key, name, old_public_key, new_public_key):
         '''
 
         '''
@@ -262,7 +256,7 @@ class Client(object):
         self.send_transaction(tx)
         return tx
 
-    def pki_revoke(self, public_key, private_key):
+    def pki_revoke(self, generator_public_key, public_key):
         '''
 
         '''
@@ -390,11 +384,39 @@ class Client(object):
                 print("\nInputs: ", json.loads(tx.inputs))
                 print("\nOutputs: ", json.loads(tx.outputs))
             elif command[0] == 'validate':
-                pass
+                client_pub_key_path = input("Enter the path of your public key (generator address): ")
+                client_pub_key = open(client_pub_key_path, 'r')
+                name = input("Enter the name you would like to validate: ")
+                val_pub_key_path = input("Enter the path of the public key you would like to validate: ")
+                val_pub_key = open(val_pub_key_path, 'r')
+                tx = self.pki_validate(client_pub_key, name, val_pub_key)
+                print("\nInputs: ", json.loads(tx.inputs))
+                print("\nOutputs: ", json.loads(tx.outputs))
             elif command[0] == 'update':
-                pass
+                client_pub_key_path = input("Enter the path of your public key (generator address): ")
+                client_pub_key = open(client_pub_key_path, 'r')
+                name = input("Enter the name you would like to associate with your updated key: ")
+                old_pub_key_path = input("Enter the path of your old public key: ")
+                old_pub_key = open(old_pub_key_path, 'r')
+                new_pub_key_path = input("Enter the path of your new public key: ")
+                new_pub_key = open(new_pub_key_path, 'r')
+                tx = self.pki_update(client_pub_key, name, old_pub_key, new_pub_key)
+                tx_2 = self.pki_revoke(client_pub_key, old_pub_key)
+                print("Generated two transactions: ")
+                print("\nUPDATE:")
+                print("\nInputs: ", json.loads(tx.inputs))
+                print("\nOutputs: ", json.loads(tx_2.outputs))
+                print("\nREVOKE:")
+                print("\nInputs: ", json.loads(tx_2.inputs))
+                print("\nOutputs: ", json.loads(tx_2.outputs))
             elif command[0] == 'revoke':
-                pass
+                client_pub_key_path = input("Enter the path of your public key (generator address): ")
+                client_pub_key = open(client_pub_key_path, 'r')
+                old_pub_key_path = input("Enter the path of the public key you would like to revoke: ")
+                old_pub_key = open(old_pub_key_path, 'r')
+                tx = self.pki_revoke(client_pub_key, old_pub_key)
+                print("\nInputs: ", json.loads(tx.inputs))
+                print("\nOutputs: ", json.loads(tx.outputs))
             elif command[0] == 'generate':
                 private_key, public_key = self.generate_keys()
                 print()
@@ -430,3 +452,10 @@ if __name__ == "__main__":
     # print(decoded)
 
     Client1 = Client(name="Client 1")
+    Client1._load_other_ca(capath=Client1.validators_capath)
+        
+    # Update the blockchain
+    print("Updating blockchain. This may take a while.")
+    Client1.blockchain = Client1.update_blockchain()
+    print("Finished updating blockchain.")
+    Client1.command_loop()
