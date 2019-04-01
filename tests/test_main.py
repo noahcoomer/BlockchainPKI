@@ -1,5 +1,8 @@
 import sys
 sys.path.append('../')
+from src import transaction
+from src import blockchain
+from src import block
 #import pytest
 from hashlib import sha256
 import json
@@ -7,9 +10,7 @@ import requests
 import time
 import random
 from flask import Flask, request
-from data_structs import transaction
-from data_structs import blockchain
-from data_structs import block
+
 from random import shuffle
 
 app = Flask(__name__)

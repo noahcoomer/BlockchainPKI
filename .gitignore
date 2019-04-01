@@ -4,3 +4,4 @@
 venv
 __pycache__
 rootCA.key
+rootCA.pem
