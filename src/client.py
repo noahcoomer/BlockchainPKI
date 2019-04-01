@@ -217,7 +217,7 @@ class Client(object):
         inputs = { "QUERY" : { "name" : name } }
         outputs = dict()
         if public_key:
-            outputs = { "QUERY" : { "success": True, "query" : True, "public_key" : public_key } }
+            outputs = { "QUERY" : { "success": True, "public_key" : public_key } }
         else:
             outputs = { "QUERY" :
                             {

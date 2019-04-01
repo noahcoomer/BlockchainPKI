@@ -32,7 +32,6 @@ TEST_KEY_3 = """-----BEGIN PUBLIC KEY-----
                 -----END PUBLIC KEY-----
              """
 
-TEST_KEY_PATH = 
 TEST_KEY_PATH = "/Users/noahcoomer/.BlockchainPKI/keys/public.pem"
 
 
