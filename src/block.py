@@ -9,23 +9,17 @@ import pickle
 
 
 class Block:
-    def __init__(self, version=0.1, id=None, transactions=[], previous_hash=None, block_generator_address=None,
+    def __init__(self, version=0.1, id=None, previous_hash=None, block_generator_address=None,
                  block_generation_proof=None, nonce=None, status=None):
         
         # A version number to track software protocol upgrades
         self.version = version
         self.id = id                   # Block index or block height
-        self.transactions = transactions                # Transaction pool passed from the validator
+        self.transactions = []                # Transaction pool created by validator calling add_transaction() method
         # A reference to the previous (parent) block in the chain
         self.previous_hash = previous_hash
-        # The list of hashes of raw transactions from transactions list
-        self.sha256_txs = []
-        # A hash of the root of the Merkel tree of this block's transactions.
-        for tx in transactions:
-            tx_hash = tx.compute_hash()
-            self.sha256_txs.append(tx_hash)
-
-        #self.merkle_root = self.compute_merkle_root(self.sha256_txs)
+        # Calculate merkel root based on the transaction inside the transaction pool
+        self.merkle_root = self.hash_tx()
         # Public key of the Validator node proposed and broadcast the block
         self.block_generator_address = block_generator_address
         # Aggregated signature of Block Generator & Validator
@@ -36,12 +30,35 @@ class Block:
         # Block status - Proposed/Confirmed/Rejected/"Accepted??"
         self.status = status
         # Total number of transaction included in this block => This will be used to verify the transaction from merkel root
-        self.t_counter = len(transactions)
+        self.t_counter = len(self.transactions)
         self.timestamp = int(time.time())            # Creation time of this block
         # The hash of the block header
         self.hash = self.compute_hash()
 
     
+    # Add one transaction to the block
+    def add_transactions(self, tx):
+        self.transactions.append(tx)
+
+
+    # Hash all transactions in the list. Pass a list of hashed transactions to
+    # compute_merkle_root(list) method to calculate the merkel root from the list of transactions
+    def hash_tx(self):
+        '''
+        params: tranaction - list of raw transaction
+
+        '''
+        sha256_txs = []
+        # A hash of the root of the Merkel tree of this block's transactions.
+        for tx in self.transactions:
+            tx_hash = tx.compute_hash()
+            sha256_txs.append(tx_hash)
+
+        merkle_hash = self.compute_merkle_root(sha256_txs)
+
+        return merkle_hash
+
+
     # Return the root of the hash tree of all the transactions in the block's transaction pool (Recursive Function)
     # Assuming each transaction in the transaction pool was HASHed in the Validator class (Ex: encode with binascii.hexlify(b'Blaah'))
     # The number of the transactions hashes in the pool has to be even. 

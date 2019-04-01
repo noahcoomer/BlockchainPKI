@@ -248,94 +248,16 @@ class Validator(object):
             self.net.close()
 
 
-    ''' # Get the merkel root from the block.
-    # Recalculate the merkel root from the pool. When the Block Generator is chosen
-    # from Round Robin Algorithm, he/she will send the update to all of the validator
-    # nodes. The update will contain the first and last position of the proposed 
-    # transactions (transactions inside a new block in propose status) inside the pool 
-    # 
-    # Use the position to pull the transactions from the local pool and recalculate the
-    # merkel root. Compare the new block's merkel root with recalculated merkel root. If they
-    # are the same then send YES. '''
-    def verify_txs_from_merkel_root(self, merkel_root, first, last, validators):
+    def verify_txs(self, block, validators):
         '''
-        params - merkel_root - the merkel root created by the block generator from 
-                               the new block
-
-        params: first - the position of the transaction in the mempool, but in the 
-                        new block, it is considered the first transaction
-
-        params: last - the position of the transaction in the mempool, but in the 
-                       new block, it is considered the last transaction
-
-        params: validators - list of validators
+        params - block - the new generated block sent from block generator
         '''
-        transactions = []
-        for i in range(first, last+1):
-            transactions.append(self.mempool[i])
+        for tx in block.transactions:
+            if tx not in self.mempool:
+                return False
 
-        sha256_txs = self.hash_tx(transactions)
-        calculated_merkle_root = self.compute_merkle_root(sha256_txs)
-
-        # ============Test Data====================
-        Alice = Validator(port=1234, cafile="/mnt/c/Users/owner/Documents/University of Memphis/Capstone Project/workspace/blockchainPKI/rootCA.pem",
-    keyfile="/mnt/c/Users/owner/Documents/University of Memphis/Capstone Project/workspace/blockchainPKI/rootCA.key")
-        # Marshal = Validator(name="marshal-mbp.memphis.edu",
-        #                addr="10.101.70.197", port=7123, bind=False)
-        # Brandon = Validator(name="brandonsmacbook.memphis.edu",
-        #                addr="10.102.114.244", bind=False)
-        for v in validators:
-            if calculated_merkle_root == merkel_root:
-                Alice.message(v, "YES")
-            else:
-                Alice.message(v, "NO")
-            
-        # ============Test Data====================
-    
-
-    # Return a list of hashed transactions
-    def hash_tx(self, transaction):
-        sha256_txs = []
-        # A hash of the root of the Merkel tree of this block's transactions.
-        for tx in transaction:
-            tx_hash = tx.compute_hash()
-            sha256_txs.append(tx_hash)
-
-        return sha256_txs
-
-
-    # Return the root of the hash tree of all the transactions in the block's transaction pool (Recursive Function)
-    # Assuming each transaction in the transaction pool was HASHed in the Validator class (Ex: encode with binascii.hexlify(b'Blaah'))
-    # The number of the transactions hashes in the pool has to be even. 
-    # If the number is odd, then hash the last item of the list twice
-    def compute_merkle_root(self, transactions):
-        # If the length of the list is 1 then return the final hash
-        if len(transactions) == 1:
-            return transactions[0]
-
-        new_tx_hashes = []
-
-        for tx_id in range(0, len(transactions)-1, 2):  # for(t_id = 0, t_id < len(transactions) - 1, t_id = t_id + 2)
-            
-            tx_hash = self.hash_2_txs(transactions[tx_id], transactions[tx_id+1])
-            new_tx_hashes.append(tx_hash)
-
-        # if the number of transactions is odd then hash the last item twice
-        if len(transactions % 2 == 1):
-            tx_hash = self.hash_2_txs(transactions[-1], transactions[-1])
-            new_tx_hashes.append(tx_hash)
-
-        return self.compute_merkle_root(new_tx_hashes)
-
-    # Hash two hashes together -> return 1 final hash
-    def hash_2_txs(self, hash1, hash2):
-        # Reverse inputs before and after hashing because of the big-edian and little-endian problem
-        h1 = hash1.hexdigest()[::-1]
-        h2 = hash2.hexdigest()[::-1]
-        hash_return = hashlib.sha256((h1+h2).encode())
-
-        return hash_return.hexdigest()[::-1]
-
+        return True
+        
 
 if __name__ == "__main__":
     # Alice = Validator(port=1234, cafile="/mnt/c/Users/owner/Documents/University of Memphis/Capstone Project/workspace/blockchainPKI/rootCA.pem",
