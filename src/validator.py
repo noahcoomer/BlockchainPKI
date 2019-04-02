@@ -4,6 +4,8 @@ from threading import Thread
 # from data import transaction
 import hashlib
 from transaction import Transaction
+from block import Block
+from blockchain import Blockchain
 
 import os
 import ssl
@@ -43,6 +45,9 @@ class Validator(object):
 
         # Buffer to store connection objects
         self.connections = []
+
+        # Blockchain object
+        self.blockchain = Blockchain()
 
         if bind:
             self.cafile = cafile
@@ -150,6 +155,7 @@ class Validator(object):
             print("Connection from %s:%d" % (addr[0], addr[1]))
             DATA = bytearray()  # used to store the incoming data
             with self.receive_context.wrap_socket(conn, server_side=True) as secure_conn:
+                start_time = int(time.time())
                 # Receive the initial BUFF_SIZE chunk of data
                 data = secure_conn.recv(BUFF_SIZE)
                 while data:
@@ -158,22 +164,26 @@ class Validator(object):
                     DATA += data
                     data = secure_conn.recv(BUFF_SIZE)
                 # Deserialize the entire object when data reception has ended
-                decoded_transaction = pickle.loads(DATA)
+                decoded_message = pickle.loads(DATA)
                 print("Received data from %s:%d: %s" %
-                      (addr[0], addr[1], decoded_transaction))
+                      (addr[0], addr[1], decoded_message))
+                if type(decoded_message) == Transaction:
+                    # Add transaction to the pool
+                    self.add_transaction(decoded_message)
+                    # broadcast to network
+                    self.broadcast(decoded_message)
+                    end_time = int(time.time())
 
-                print(type(decoded_transaction) == Transaction)
-                # check if this transaction is in mempool
-                start_time = int(time.time())
-                # Add transaction to the pool
-                self.add_transaction(decoded_transaction)
-                end_time = int(time.time())
-                if (end_time - start_time) >= 10 and len(self.mempool) >= 10:
-                    print("Call Round Robin to chose the leader")
-
-                # broadcast to network
-
-                # return decoded_transaction
+                    ## Probably need to add a leader flag here
+                    if (end_time - start_time) >= 10:
+                        start_time = int(time.time())
+                        print("Call Round Robin to chose the leader")
+                        self.create_block(self.mempool)
+                    elif len(self.mempool) >= 10:
+                        start_time = int(time.time())
+                        self.create_block(self.mempool[:10])
+                elif type(decoded_message) == Block:
+                    print("Call verification/consensus function to vote on Block")
         except socket.timeout:
             pass
 
@@ -181,13 +191,13 @@ class Validator(object):
         '''
             Receive incoming transactions and add to mempool
         '''
-        if transaction == 'YES':
+        if transaction.status == 'Yes':
             pass
-        elif transaction == 'NO':
+        elif transaction.status == 'No':
             pass
         else:
             if transaction not in self.mempool:
-                transaction.status = "OPEN"
+                transaction.status = "Open"
                 self.mempool.append(transaction)
 
     def message(self, v, msg):
@@ -235,6 +245,26 @@ class Validator(object):
             name = "val-" + str(i)
             receiver = Validator(name=name, addr=ip, port=port, bind=False)
             self.message(receiver, message)
+
+    def create_connections(self):
+        '''
+            Create the connection objects from the validators info file and store them as a triple
+            arr[0] = hostname
+            arr[1] = ip
+            arr[2] = port 
+        '''
+        f = open('./validators.txt', 'r')
+        for line in f:
+            arr = line.split(' ')
+            self.connections.append((arr[0], arr[1], int(arr[2])))
+        f.close()
+
+    def create_block(self, transactions):
+        #for tx in transactions:
+
+        block = Block(id=len(self.blockchain), transactions=transactions, 
+                      previous_hash=self.blockchain.last_block.hash)
+        self.broadcast(block)
 
     def close(self):
         '''
@@ -337,14 +367,18 @@ class Validator(object):
 
 if __name__ == "__main__":
     Alice = Validator(port=1234)
-    Bob = Validator(name="brandonsmacbook.memphis.edu", addr="10.102.126.71",
+    Alice.create_connections()
+    Bob = Validator(name="marshal-mbp.memphis.edu", addr="10.101.7.184",
                     port=1234, bind=False)
+    
 
     tx = pickle.dumps(Transaction(version=0.1, transaction_type='regular', tx_generator_address='0.0.0.0',
                                   inputs='', outputs='', lock_time=1234))
     try:
         while True:
             # Send the serialized object to Bob
+            #Alice.message(Bob, tx)
+            Alice.receive()
             Alice.message(Bob, tx)
             time.sleep(1)
     except KeyboardInterrupt:
