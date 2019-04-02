@@ -59,8 +59,11 @@ class Transaction:
         return hash_256
 
     def __eq__(self, other):
-        return hash(self) == hash(other)
+        return self.compute_hash() == other.compute_hash()
 
     def __str__(self):
-        bit_str = str(pickle.dumps(self))
-        return bit_str
+        s = "<Transaction: "
+        for attr, value in self.__dict__.items():
+            s += "%s=%s, " % (attr, value or "None")
+        s += " >"
+        return s
