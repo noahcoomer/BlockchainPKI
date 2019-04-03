@@ -188,18 +188,40 @@ class Validator(object):
         except socket.timeout:
             pass
 
-    def add_transaction(self, transaction):
+
+    def add_transaction(self, tx):
         '''
             Receive incoming transactions and add to mempool
         '''
-        if transaction.status == 'Yes':
+        if tx.status == 'YES':
             pass
-        elif transaction.status == 'No':
+        elif tx.status == 'NO':
             pass
         else:
-            if transaction not in self.mempool:
-                transaction.status = "Open"
-                self.mempool.append(transaction)
+            if tx not in self.mempool:
+                tx.status = "Open"
+                self.mempool.append(tx)
+
+    def create_block(self, first, last ):
+        block_tx_pool = []
+
+        for tx in range(first, last):
+            block_tx_pool.append(self.mempool[tx])
+
+        bl = Block(
+            version=0.1,
+            id=len("Blockchain.block_index"),
+            transaction=block_tx_pool,
+            previous_hash="Blockchain.last_block(Blockchain)",
+            block_generator_address=self.address,
+            block_generation_proof=self.cafile,
+            nonce=0, 
+            status="Proposed"
+        )
+
+        return bl
+
+        
 
     def message(self, v, msg):
         '''
@@ -265,6 +287,7 @@ class Validator(object):
                       previous_hash=self.blockchain.last_block.hash)
         self.broadcast(block)
 
+<<<<<<< HEAD
     def verify_txs_from_merkel_root(self, merkel_root, first, last, validators):
         '''
             Verifies transactions from merkel root 
@@ -327,6 +350,18 @@ class Validator(object):
         if self.bound:
             self.net.close()
 
+=======
+    def verify_txs(self, block, validators):
+        '''
+        params - block - the new generated block sent from block generator
+        '''
+        for tx in block.transactions:
+            if tx not in self.mempool:
+                return False
+
+        return True
+        
+>>>>>>> 9736d0af50f4453cb8915a2abeb6d0d637b478bb
 
 if __name__ == "__main__":
     port = int(input("Enter a port number: "))
