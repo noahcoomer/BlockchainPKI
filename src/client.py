@@ -257,33 +257,53 @@ class Client(object):
         return tx
 
     def pki_revoke(self, generator_public_key, public_key):
-        def pki_revoke(self, generator_public_key, public_key):
         '''
             Revoke a public key
         '''
-        # Bool to check if a public key was found in the list
-        revoked_key = false
-        # List to store the public keys from the file
-        public_keys = []
-        # Name of the file storing public keys
-        filename = "public_keys.txt"
-        # Open the file in read mode and copy contents to a variable
-        with open(filename, "r") as file:
-            public_keys = file.readlines()
-        # Open the file containing the public keys
-        with open(filename,"w") as file:
-            # Check to see if the public key we're looking to revoke exists within the list
-            for pKey in public_keys:
-                # If the public key exists, replace the key with the message that it's been revoked
-                if pKey == public_key:
-                    file.write("Revoked public key:" + pKey + "\n")
-                    revoked_key = True
-                # If the key looking to be revoked doesn't exist in the list, continuing rewriting the list with original content
-                else:
-                    file.write(pKey + "\n")
-        # Removing the files takes away from the blockchain aspect of the records being immutable
 
-        return revoked_key
+        # input verification
+        gen = self.verify_public_key(generator_public_key)
+        if not gen:
+            print("The generator public key is incorrectly formatted. Please try again.")
+            return -1
+
+        pub = self.verify_public_key(public_key)
+        if not pub:
+            print("The entered public key is incorrectly formatted. Please try again.")
+            return -1
+
+        inputs = { "REVOKE" : { "public_key" : pub } }
+
+        # Query blockchain, break if we find our public key
+        flag = False
+        for block in reversed(self.blockchain.chain):
+            for tx in block.transactions:
+                inputs = json.loads(tx.inputs)
+                for key in inputs.keys(): # should only be 1 top level key - still O(1)
+                    try:
+                        if public_key == inputs[key]["public_key"]:
+                            flag = True
+                            break
+                    except:
+                        continue
+                if flag == True:
+                    break
+            if flag == True:
+                break
+
+        outputs = dict()
+        if flag == True:
+            outputs = { "REVOKE" : { "success" : True } }
+        else:
+            outputs = { "REVOKE" : { "success" : False, "message" : "Public key not found." } }
+
+        inputs = json.dumps(inputs)
+        outputs = json.dumps(outputs)
+
+        tx = transaction.Transaction(transaction_type="Standard", tx_generator_address=gen,
+                                    inputs=inputs, outputs=outputs)
+
+        return tx
 
     @staticmethod
     def generate_keys():
