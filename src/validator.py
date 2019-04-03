@@ -147,6 +147,32 @@ class Validator(object):
                 abspath = os.path.join(capath, path)
                 self.send_context.load_verify_locations(abspath)
 
+    def save_new_certificate(self, data):
+        '''
+            Saves a new certificate that was received 
+            from a Validator
+
+            :param bytearray data: the certificate
+        '''
+        # Create a random filename of length 15
+        filename = ''.join(random.choice(
+            string.ascii_uppercase + string.ascii_lowercase + string.digits) for _ in range(15))
+        # Save the certificate and remake the context with the new certificate included
+        path = os.path.join(
+            self.validators_capath, "%s.pem" % filename)
+        for p in os.listdir(self.validators_capath):
+            if p.endswith('.pem'):
+                p = os.path.join(self.validators_capath, p)
+                content = open(p, 'rb').read()
+                if content == data:
+                    print("This certificate already exists at %s" % p)
+                    return
+        with open(path, 'wb') as f:
+            f.write(data)
+        print("New CA added at %s" % path)
+        self._load_other_ca(self.validators_capath)
+        print("Reloaded Validator CAs")
+
     def receive(self, mode='secure'):
         '''
             Receive thread; handles incoming transactions
@@ -167,13 +193,15 @@ class Validator(object):
                     "Warning: Are you sure you want to allow insecure connections? (y/n)")
                 warn = warn.strip().lower()
                 if warn == 'y':
-                    pass
+                    mode = 'insecure'
+                    s = conn
                 elif warn == 'n':
                     print("Setting mode=secure")
                     mode = 'secure'
+                    s = self.receive_context.wrap_socket(
+                        conn, server_side=True)
                 else:
-                    raise ValueError("Mode must be either (y/n)")
-                s = conn
+                    raise ValueError("Answer must be either (y/n)")
 
             DATA = bytearray()  # used to store the incoming data
             with s:
@@ -189,24 +217,13 @@ class Validator(object):
                 if b'/cert' in DATA:
                     # Validator sent their certificate
                     DATA = DATA[5:]  # Remove flag
-                    # Create a random filename of length 15
-                    filename = ''.join(random.choice(
-                        string.ascii_uppercase + string.ascii_lowercase + string.digits) for _ in range(15))
-                    # Save the certificate and remake the context with the new certificate included
-                    path = os.path.join(
-                        self.validators_capath, "%s.pem" % filename)
-                    with open(path, 'wb') as f:
-                        f.write(DATA)
-                    self._load_other_ca(self.validators_capath)
-
+                    self.save_new_certificate(data=DATA)
                 # Deserialize the entire object when data reception has ended
                 try:
                     data = pickle.loads(DATA)
                 except pickle.UnpicklingError:
                     # The data received most likely wasn't a Transaction
                     data = DATA.decode()
-
-                print(data)
 
                 if type(data) == Transaction:
                     # Add transaction to the pool
@@ -392,11 +409,13 @@ class Validator(object):
 if __name__ == "__main__":
     port = int(input("Enter a port number: "))
     val = Validator(port=port)
+    val2 = Validator(port=port+1)
     # val.create_connections()
     # val.update_blockchain()
 
     try:
         while True:
-            val.receive()
+            val.receive('insecure')
+            val2.send_certificate(addr=val.address[0], port=val.address[1])
     except KeyboardInterrupt:
         val.close()
