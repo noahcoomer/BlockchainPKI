@@ -12,6 +12,8 @@ import ssl
 import time
 import errno
 import socket
+import string
+import random
 import binascii
 import threading
 import pickle
@@ -50,9 +52,10 @@ class Validator(object):
         self.blockchain = Blockchain()
 
         if bind:
-            self.cafile = cafile
-            self.keyfile = keyfile
-            self.validators_capath = validators_capath
+            self.cafile = cafile.replace('~', os.environ['HOME'])
+            self.keyfile = keyfile.replace('~', os.environ['HOME'])
+            self.validators_capath = validators_capath.replace(
+                '~', os.environ['HOME'])
 
             # Initialize the network, both the send and receive context,
             # and load the necessary CAs
@@ -72,7 +75,7 @@ class Validator(object):
             self.net = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             self.net.settimeout(0.001)  # Blocking socket
             self.net.bind(self.address)  # Bind to address
-            self.net.listen()  # Listen for connections
+            self.net.listen(INCONN_THRESH)  # Listen for connections
         except socket.error as e:
             if e.errno == errno.ECONNREFUSED:
                 # Connection refused error
@@ -90,6 +93,7 @@ class Validator(object):
             self.send_context = ssl.create_default_context()
             self.receive_context = ssl.create_default_context(
                 ssl.Purpose.CLIENT_AUTH)
+            print("Listening on %s:%d" % self.address)
 
     def _load_root_ca(self, cafile, keyfile):
         '''
@@ -143,26 +147,57 @@ class Validator(object):
                 abspath = os.path.join(capath, path)
                 self.send_context.load_verify_locations(abspath)
 
-    def receive(self):
+    def receive(self, mode='secure'):
         '''
             Receive thread; handles incoming transactions
             Add the incoming transaction into the pool. If after 10 seconds
             the number of transactions is 10 then call the Round Robin to chose
             Block Generator (Leader)
+
+            :param: str mode: whether or not the connection is encrypted ('secure' or None). 
+            mode=None specifies the connection should not be encrypted.
         '''
         try:
             conn, addr = self.net.accept()
             print("Connection from %s:%d" % (addr[0], addr[1]))
+            if mode is 'secure':
+                s = self.receive_context.wrap_socket(conn, server_side=True)
+            else:
+                warn = input(
+                    "Warning: Are you sure you want to allow insecure connections? (y/n)")
+                warn = warn.strip().lower()
+                if warn == 'y':
+                    pass
+                elif warn == 'n':
+                    print("Setting mode=secure")
+                    mode = 'secure'
+                else:
+                    raise ValueError("Mode must be either (y/n)")
+                s = conn
+
             DATA = bytearray()  # used to store the incoming data
-            with self.receive_context.wrap_socket(conn, server_side=True) as secure_conn:
+            with s:
                 start_time = int(time.time())
                 # Receive the initial BUFF_SIZE chunk of data
-                data = secure_conn.recv(BUFF_SIZE)
+                data = s.recv(BUFF_SIZE)
                 while data:
                     # Continue receiving chunks of the data until the buffer is empty
                     # (until the client sends empty data)
                     DATA += data
-                    data = secure_conn.recv(BUFF_SIZE)
+                    data = s.recv(BUFF_SIZE)
+
+                if b'/cert' in DATA:
+                    # Validator sent their certificate
+                    DATA = DATA[5:]  # Remove flag
+                    # Create a random filename of length 15
+                    filename = ''.join(random.choice(
+                        string.ascii_uppercase + string.ascii_lowercase + string.digits) for _ in range(15))
+                    # Save the certificate and remake the context with the new certificate included
+                    path = os.path.join(
+                        self.validators_capath, "%s.pem" % filename)
+                    with open(path, 'wb') as f:
+                        f.write(DATA)
+                    self._load_other_ca(self.validators_capath)
 
                 # Deserialize the entire object when data reception has ended
                 try:
@@ -170,7 +205,7 @@ class Validator(object):
                 except pickle.UnpicklingError:
                     # The data received most likely wasn't a Transaction
                     data = DATA.decode()
-                
+
                 print(data)
 
                 if type(data) == Transaction:
@@ -239,6 +274,27 @@ class Validator(object):
         else:
             raise Exception(
                 "The net must be initialized and listening for connections")
+
+    def send_certificate(self, addr, port):
+        '''
+            Sends the certificate to addr:port through 
+            standard, unencrypted TCP
+
+            :param str addr: the ipv4 address to send to
+            :param int port: the port number to send to
+        '''
+        cafile = open(self.cafile, 'rb').read()
+        print("Read cafile. Attempting to send to %s:%d" % (addr, port))
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            try:
+                s.connect((addr, port))
+                # Alert receiver that you want to send a certificate
+                s.send(b'/cert')
+                s.sendall(cafile)  # Send the certificate
+            except OSError as e:
+                print(e)
+            except socket.timeout as e:
+                print(e)
 
     def broadcast(self, message):
         '''
