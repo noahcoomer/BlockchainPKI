@@ -57,13 +57,18 @@ class Client(object):
                 self._init_net()  # Try to initialize the net again
         finally:
             self.context = ssl.create_default_context()
+            self._load_other_ca(capath=self.validators_capath)
         
     def _load_other_ca(self, capath=None):
         '''
-            Loads a set of CAs from a directory 
+            Loads a set of CAs from a directory
             into the sending context
         '''
         assert self.context != None, "Initialize the send context before loading CAs."
+
+        if capath == None:
+            # This is the default path to the cafiles if nothing is entered
+            capath = self.validators_capath
 
         capath = capath.replace("~", os.environ["HOME"])
 
@@ -71,14 +76,20 @@ class Client(object):
             print("Directory %s does not exist" % capath)
             cont = input("Would you like to create %s? (y/n)" % capath)
             if cont.strip() == 'y':
-                os.mkdir(capath)
+                os.makedirs(capath)
                 print("Created %s" % capath)
         elif len(os.listdir(capath)) == 0:
             raise FileNotFoundError(
-                "No other Validator CAs were found at %s. You will be unable to send any data without them." % capath)
+                "No Validator CAs were found at %s. You will be unable to send any data without them." % capath)
         else:
-            self.context.load_verify_locations(
-                capath=capath or self.validators_capath)
+            cafiles = [path for path in os.listdir(
+                capath) if path.endswith('.pem')]
+            print("Loaded %d certificates from %s" %
+                  (len(cafiles), capath))
+
+            for path in cafiles:
+                abspath = os.path.join(capath, path)
+                self.context.load_verify_locations(abspath)
 
     def create_connections(self):
         '''
@@ -115,20 +126,21 @@ class Client(object):
             txn = pickle.dumps(tx)
             # Create a new socket (the outbound net)
             print("Attempting to send to %s:%s" % val.address)
-            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-                s.setblocking(True)
-                try:
-                    # Connect to the validator
-                    s.connect(address)
-                    # Send the entirety of the message
-                    s.sendall(txn)
-                except OSError as e:
-                    # Except cases for if the send fails
-                    if e.errno == errno.ECONNREFUSED:
-                        print(e)
-                        # return -1, e
-                except socket.error as e:
+            secure_conn = self.context.wrap_socket(
+                socket.socket(socket.AF_INET, socket.SOCK_STREAM), server_hostname=val.name)
+            try:
+                # Connect to the validator
+                secure_conn.connect(address)
+                # Send the entirety of the message
+                secure_conn.sendall(txn)
+            except OSError as e:
+                # Except cases for if the send fails
+                if e.errno == errno.ECONNREFUSED:
                     print(e)
+            except socket.error as e:
+                print(e)
+            finally:
+                secure_conn.close()
         else:
             raise Exception(
                 "The validator must be initialized and listening for connections")

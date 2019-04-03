@@ -147,7 +147,7 @@ class Validator(object):
         '''
             Receive thread; handles incoming transactions
             Add the incoming transaction into the pool. If after 10 seconds
-            the number of transactions is 10 then call the Round Robin to chose 
+            the number of transactions is 10 then call the Round Robin to chose
             Block Generator (Leader)
         '''
         try:
@@ -165,28 +165,6 @@ class Validator(object):
                     data = secure_conn.recv(BUFF_SIZE)
 
                 # Deserialize the entire object when data reception has ended
-<<<<<<< HEAD
-                decoded_message = pickle.loads(DATA)
-                print("Received data from %s:%d: %s" %
-                      (addr[0], addr[1], decoded_message))
-                if type(decoded_message) == Transaction:
-                    # Add transaction to the pool
-                    self.add_transaction(decoded_message)
-                    # broadcast to network
-                    self.broadcast(decoded_message)
-                    end_time = int(time.time())
-
-                    ## Probably need to add a leader flag here
-                    if (end_time - start_time) >= 10:
-                        start_time = int(time.time())
-                        print("Call Round Robin to chose the leader")
-                        self.create_block(self.mempool)
-                    elif len(self.mempool) >= 10:
-                        start_time = int(time.time())
-                        self.create_block(self.mempool[:10])
-                elif type(decoded_message) == Block:
-                    print("Call verification/consensus function to vote on Block")
-=======
                 try:
                     data = pickle.loads(DATA)
                 except pickle.UnpicklingError:
@@ -194,21 +172,26 @@ class Validator(object):
                     data = DATA.decode()
 
                 if type(data) == Transaction:
-                    # check if this transaction is in mempool
-                    start_time = int(time.time())
                     # Add transaction to the pool
                     self.add_transaction(data)
+                    # broadcast to network
+                    self.broadcast(data)
                     end_time = int(time.time())
-                    if (end_time - start_time) >= 10 and len(self.mempool) >= 10:
+
+                    # Probably need to add a leader flag here
+                    if (end_time - start_time) >= 10:
+                        start_time = int(time.time())
                         print("Call Round Robin to chose the leader")
+                        self.create_block(self.mempool)
+                    elif len(self.mempool) >= 10:
+                        start_time = int(time.time())
+                        self.create_block(self.mempool[:10])
+                elif type(data) == Block:
+                    print("Call verification/consensus function to vote on Block")
                 else:
-                    print("Data received was not of type Transaction, but of type %s: \n%s\n" % (
+                    print("Data received was not of type Transaction or Block, but of type %s: \n%s\n" % (
                         type(data), data))
-
-                # broadcast to network
-
                 # return decoded_transaction
->>>>>>> 53e78c647cb1b538a3c8606ce278669361d6c71a
         except socket.timeout:
             pass
 
@@ -216,20 +199,9 @@ class Validator(object):
         '''
             Receive incoming transactions and add to mempool
         '''
-<<<<<<< HEAD
-        if transaction.status == 'Yes':
-            pass
-        elif transaction.status == 'No':
-            pass
-        else:
-            if transaction not in self.mempool:
-                transaction.status = "Open"
-                self.mempool.append(transaction)
-=======
         if transaction not in self.mempool:
             transaction.status = "OPEN"
             self.mempool.append(transaction)
->>>>>>> 53e78c647cb1b538a3c8606ce278669361d6c71a
 
     def message(self, v, msg):
         '''
@@ -284,14 +256,15 @@ class Validator(object):
             if self.name == arr[0] and self.address == (arr[1], int(arr[2])):
                 continue
             else:
-                val = Validator(name=arr[0], addr=arr[1], port=int(arr[2]), bind=False)
+                val = Validator(name=arr[0], addr=arr[1],
+                                port=int(arr[2]), bind=False)
                 self.connections.append(val)
         f.close()
 
     def create_block(self, transactions):
-        #for tx in transactions:
+        # for tx in transactions:
 
-        block = Block(id=len(self.blockchain), transactions=transactions, 
+        block = Block(id=len(self.blockchain), transactions=transactions,
                       previous_hash=self.blockchain.last_block.hash)
         self.broadcast(block)
 
@@ -364,22 +337,8 @@ if __name__ == "__main__":
     # val.create_connections()
     # val.update_blockchain()
 
-<<<<<<< HEAD
     try:
         while True:
             val.receive()
-=======
-    tx = pickle.dumps(Transaction(version=0.1, transaction_type='regular', tx_generator_address='0.0.0.0',
-                                  inputs='', outputs='', lock_time=0))
-    try:
-        while True:
-            # Send the serialized transaction to Bob
-            Alice.message(Bob, tx)
-            time.sleep(1)
-
-            # Send Bob something that isn't a transaction
-            Alice.message(Bob, b"Hello, Bob!")
-            time.sleep(1)
->>>>>>> 53e78c647cb1b538a3c8606ce278669361d6c71a
     except KeyboardInterrupt:
         val.close()
