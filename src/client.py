@@ -249,6 +249,7 @@ class Client(object):
         enable the user to check whether the name and public key are valid
         return true if it is valid and false if it is not valid
         '''
+        flag = False
         gen = self.verify_public_key(generator_public_key)
         if not gen:
             print("The generator public key is incorrectly formatted. Please try again.")
@@ -262,10 +263,26 @@ class Client(object):
         if len(name) < 1 or len(name) > 255:
             print("The name value must be between 1-255 characters.")
             return -1 
-            
-        tx = transaction.Transaction()
+        flag = True
 
-        self.send_transaction(tx)
+        inputs = { "VALIDATE" : { "name" : name, "generator_public_key" : gen, "public_key" : pub } }
+        
+        outputs = dict()
+
+        if flag == True:
+            outputs = { "VALIDATE" : { "success" : True, "Validated" : True, "name" : name, "public_key" : pub } }
+        else:
+            outputs = { "VALIDATE" : { "success" : False, "message" : "cannot validate name and public key" } }
+
+
+        #dumps to JSON
+        inputs = json.dumps(inputs)
+        outputs = json.dumps(outputs)
+
+
+        tx = transaction.Transaction(transaction_type='standard', tx_generator_address=gen, inputs= inputs, outputs= outputs)
+
+        #self.send_transaction(tx)
         return tx
 
     def pki_update(self, name, old_public_key, new_public_key):
