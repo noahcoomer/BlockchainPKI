@@ -239,24 +239,22 @@ class Validator(object):
         '''
             Broadcast a message to every other validator that is connected to this node
         '''
-        i = 0
-        for addr in self.connections:
-            ip, port = addr
-            name = "val-" + str(i)
-            receiver = Validator(name=name, addr=ip, port=port, bind=False)
-            self.message(receiver, message)
+        for val in self.connections:
+            self.message(val, message)
 
     def create_connections(self):
         '''
             Create the connection objects from the validators info file and store them as a triple
-            arr[0] = hostname
-            arr[1] = ip
-            arr[2] = port 
+            arr[0] = hostname, arr[1] = ip, int(arr[2]) = port 
         '''
-        f = open('./validators.txt', 'r')
+        f = open('../validators.txt', 'r')
         for line in f:
             arr = line.split(' ')
-            self.connections.append((arr[0], arr[1], int(arr[2])))
+            if self.name == arr[0] and self.address == (arr[1], int(arr[2])):
+                continue
+            else:
+                val = Validator(name=arr[0], addr=arr[1], port=int(arr[2]))
+                self.connections.append(val)
         f.close()
 
     def create_block(self, transactions):
@@ -366,20 +364,13 @@ class Validator(object):
 
 
 if __name__ == "__main__":
-    Alice = Validator(port=1234)
-    Alice.create_connections()
-    Bob = Validator(name="marshal-mbp.memphis.edu", addr="10.101.7.184",
-                    port=1234, bind=False)
-    
+    port = int(input("Enter a port number: "))
+    val = Validator(port=port)
+    # val.create_connections()
+    # val.update_blockchain()
 
-    tx = pickle.dumps(Transaction(version=0.1, transaction_type='regular', tx_generator_address='0.0.0.0',
-                                  inputs='', outputs='', lock_time=1234))
     try:
         while True:
-            # Send the serialized object to Bob
-            #Alice.message(Bob, tx)
-            Alice.receive()
-            Alice.message(Bob, tx)
-            time.sleep(1)
+            val.receive()
     except KeyboardInterrupt:
-        Alice.close()
+        val.close()
