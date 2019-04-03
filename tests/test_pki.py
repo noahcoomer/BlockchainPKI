@@ -32,7 +32,7 @@ TEST_KEY_3 = """-----BEGIN PUBLIC KEY-----
                 -----END PUBLIC KEY-----
              """
 
-TEST_KEY_PATH = "/Users/noahcoomer/.BlockchainPKI/keys/public.pem"
+TEST_KEY_PATH = open("/Users/noahcoomer/.BlockchainPKI/keys/public.pem", "r")
 
 
 def register_transaction(name):

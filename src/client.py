@@ -201,10 +201,7 @@ class Client(object):
         tx = transaction.Transaction(transaction_type="Standard", tx_generator_address=gen, inputs=inputs, outputs=outputs)
         # Create an entry point to the validator network that the client can connect to
 
-        ############## UNCOMMENT BEFORE GOING LIVE #################
-        #validator = validator.Validator(Alice = name="Validator", addr="10.228.112.126", port=4321)
-        #self.send_transaction(validator, tx)
-
+        self.broadcast_transaction(tx)
         return tx
 
     def pki_query(self, generator_public_key, name):
@@ -253,9 +250,7 @@ class Client(object):
         tx = transaction.Transaction(transaction_type="Standard", tx_generator_address=gen,
                                     inputs=inputs, outputs=outputs)
 
-        ####### UNCOMMENT BEFORE PRODUCTION ########
-        #self.send_transaction(tx)
-
+        self.broadcast_transaction(tx)
         return tx
 
     def pki_validate(self, generator_public_key, name, public_key):
@@ -290,11 +285,8 @@ class Client(object):
         '''
             Generate public and private keys using RSA key generation
         '''
-        # Specify the IP size of the key modulus
-        modulus_length = 256 * 8
-        # Using a Random Number Generator and the modulus length as parameters
         # For the RSA key generation, create your private key
-        private_key = RSA.generate(modulus_length, Random.new().read)
+        private_key = RSA.generate(2048)
 
         # create the key dir if not created
         home_path = expanduser("~")

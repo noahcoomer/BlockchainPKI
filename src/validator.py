@@ -165,7 +165,6 @@ class Validator(object):
                     data = secure_conn.recv(BUFF_SIZE)
 
                 # Deserialize the entire object when data reception has ended
-<<<<<<< HEAD
                 decoded_message = pickle.loads(DATA)
                 print("Received data from %s:%d: %s" %
                       (addr[0], addr[1], decoded_message))
@@ -186,29 +185,6 @@ class Validator(object):
                         self.create_block(self.mempool[:10])
                 elif type(decoded_message) == Block:
                     print("Call verification/consensus function to vote on Block")
-=======
-                try:
-                    data = pickle.loads(DATA)
-                except pickle.UnpicklingError:
-                    # The data received most likely wasn't a Transaction
-                    data = DATA.decode()
-
-                if type(data) == Transaction:
-                    # check if this transaction is in mempool
-                    start_time = int(time.time())
-                    # Add transaction to the pool
-                    self.add_transaction(data)
-                    end_time = int(time.time())
-                    if (end_time - start_time) >= 10 and len(self.mempool) >= 10:
-                        print("Call Round Robin to chose the leader")
-                else:
-                    print("Data received was not of type Transaction, but of type %s: \n%s\n" % (
-                        type(data), data))
-
-                # broadcast to network
-
-                # return decoded_transaction
->>>>>>> 53e78c647cb1b538a3c8606ce278669361d6c71a
         except socket.timeout:
             pass
 
@@ -216,7 +192,6 @@ class Validator(object):
         '''
             Receive incoming transactions and add to mempool
         '''
-<<<<<<< HEAD
         if transaction.status == 'Yes':
             pass
         elif transaction.status == 'No':
@@ -225,11 +200,6 @@ class Validator(object):
             if transaction not in self.mempool:
                 transaction.status = "Open"
                 self.mempool.append(transaction)
-=======
-        if transaction not in self.mempool:
-            transaction.status = "OPEN"
-            self.mempool.append(transaction)
->>>>>>> 53e78c647cb1b538a3c8606ce278669361d6c71a
 
     def message(self, v, msg):
         '''
@@ -364,22 +334,8 @@ if __name__ == "__main__":
     # val.create_connections()
     # val.update_blockchain()
 
-<<<<<<< HEAD
     try:
         while True:
             val.receive()
-=======
-    tx = pickle.dumps(Transaction(version=0.1, transaction_type='regular', tx_generator_address='0.0.0.0',
-                                  inputs='', outputs='', lock_time=0))
-    try:
-        while True:
-            # Send the serialized transaction to Bob
-            Alice.message(Bob, tx)
-            time.sleep(1)
-
-            # Send Bob something that isn't a transaction
-            Alice.message(Bob, b"Hello, Bob!")
-            time.sleep(1)
->>>>>>> 53e78c647cb1b538a3c8606ce278669361d6c71a
     except KeyboardInterrupt:
         val.close()
