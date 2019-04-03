@@ -8,20 +8,20 @@ import pickle
 
 
 class Block:
-    def __init__(self, version=0.1, id=None, previous_hash=None, block_generator_address=None,
+    def __init__(self, version=0.1, id=None, transaction=None, previous_hash=None, block_generator_address=None,
                  block_generation_proof=None, nonce=None, status=None):
         
         # A version number to track software protocol upgrades
         self.version = version
         self.id = id                   # Block index or block height
         # Transaction pool created by validator calling add_transaction() method
-        self.transactions = []    
+        self.transactions = transaction   
         # Transaction pool with hashed transactions
         self.sha256_txs = []        
         # A reference to the previous (parent) block in the chain
         self.previous_hash = previous_hash
         # Calculate merkel root based on the transaction inside the transaction pool
-        self.merkle_root = self.merkle_root_hash()
+        self.merkle_root = self.merkle_root_hash(self.transactions)
         # Public key of the Validator node proposed and broadcast the block
         self.block_generator_address = block_generator_address
         # Aggregated signature of Block Generator & Validator
@@ -37,24 +37,19 @@ class Block:
         # The hash of the block header
         self.hash = self.compute_hash()
 
-    
-    # Add one transaction to the block
-    # Add hashed of the transaction to sha256_txs
-    def add_transactions(self, tx):
-        self.transactions.append(tx)
-        tx_hash = hashlib.sha256(tx.encode()).hexdigest()
-        self.sha256_txs.append(tx_hash)
-        self.merkle_root = self.merkle_root_hash()
-        self.hash = self.compute_hash()
 
 
     # Hash all transactions in the list. Pass a list of hashed transactions to
     # compute_merkle_root(list) method to calculate the merkel root from the list of transactions
-    def merkle_root_hash(self):
+    def merkle_root_hash(self, transactions):
         '''
         params: tranaction - list of raw transaction
 
         '''
+        for tx in transactions:
+            tx_hash = hashlib.sha256(tx.encode()).hexdigest()
+            self.sha256_txs.append(tx_hash)
+
         # Initialize merkel root when the block is empty (no transaction)
         if self.sha256_txs == []:
             return hashlib.sha256("0".encode()).hexdigest()

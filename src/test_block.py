@@ -22,30 +22,24 @@ def new_transaction(input):
         outputs= "",
         lock_time = 12334
     )
-    tx_data = transactions.__str__()
+    tx_data = pickle.dumps(transactions)
 
     return tx_data
 
 def new_block():
 
-    bl = Block(
-        version=0.1,
-        id=0,
-        previous_hash="",
-        block_generator_address="123.09.02.24",
-        block_generation_proof="None",
-        nonce=0, 
-        status="Proposed"
-    )
+    
+    vl = Validator()
 
     for i in range(1,10):
         tx = new_transaction(i)
-        bl.add_transactions(tx)
+        vl.add_transaction(tx)
     
+    bl = vl.create_block(0,9)
     print("Hashes of each transaction is :")
     for t in bl.sha256_txs:
         print(t)
-    print("Merkel root of the block is ", bl.merkle_root)
+    print("\nMerkel root of the block is ", bl.merkle_root)
     print("Hash of the block is ", bl.hash)
         
 

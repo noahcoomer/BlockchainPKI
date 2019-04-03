@@ -23,6 +23,7 @@ DUNGLE_PUBLIC_KEY = """-----BEGIN PUBLIC KEY-----
 class Blockchain:
     difficulty = 3
     chain = []
+    block_index  = 0
 
     def __init__(self):
         self.unconfirmed_transactions = []
@@ -94,6 +95,7 @@ class Blockchain:
 
         if block.hash == consensus_hash:
             self.chain.append(block)
+            self.block_index = self.block_index + 1
             return True
         else:
             return False
