@@ -202,7 +202,7 @@ class Validator(object):
                 tx.status = "Open"
                 self.mempool.append(tx)
 
-    def create_block(self, first, last ):
+    def create_block(self, first, last):
         block_tx_pool = []
 
         for tx in range(first, last):
@@ -211,8 +211,8 @@ class Validator(object):
         bl = Block(
             version=0.1,
             id=len("Blockchain.block_index"),
-            transaction=block_tx_pool,
-            previous_hash="Blockchain.last_block(Blockchain)",
+            transactions=block_tx_pool,
+            previous_hash=self.blockchain.last_block.hash,
             block_generator_address=self.address,
             block_generation_proof=self.cafile,
             nonce=0, 
@@ -279,13 +279,6 @@ class Validator(object):
                 val = Validator(name=arr[0], addr=arr[1], port=int(arr[2]), bind=False)
                 self.connections.append(val)
         f.close()
-
-    def create_block(self, transactions):
-        #for tx in transactions:
-
-        block = Block(id=len(self.blockchain), transactions=transactions, 
-                      previous_hash=self.blockchain.last_block.hash)
-        self.broadcast(block)
 
     def verify_txs_from_merkel_root(self, merkel_root, first, last, validators):
         '''
