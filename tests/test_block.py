@@ -1,8 +1,8 @@
 import sys
-sys.path.append('../')
+sys.path.append('../src')
 import pickle
 from hashlib import sha256
-from src import block, validator, transaction
+import block, validator, transaction
 
 def new_transaction(input):
     #block_string = json.dumps("123456")
