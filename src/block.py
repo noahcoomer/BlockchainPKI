@@ -14,7 +14,7 @@ class Block:
         
         # A version number to track software protocol upgrades
         self.version = version
-        self.id = id                                      # Block index or block height
+        self.id = id                   # Block index or block height
         self.transactions = transactions                # Transaction pool passed from the validator
         # A reference to the previous (parent) block in the chain
         self.previous_hash = previous_hash
@@ -65,9 +65,6 @@ class Block:
 
         return self.compute_merkle_root(new_tx_hashes)
 
-
-        #tx_hashes = tuple(tx_hashes)
-        #return hash(new_tx_hashes)
 
     # Hash two hashes together -> return 1 final hash
     def hash_2_txs(self, hash1, hash2):

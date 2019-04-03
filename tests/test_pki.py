@@ -1,6 +1,7 @@
 # PKI functionalty tests
 
 import json
+from os.path import expanduser
 
 import sys
 sys.path.append('../src/')
@@ -31,13 +32,20 @@ TEST_KEY_3 = """-----BEGIN PUBLIC KEY-----
                 -----END PUBLIC KEY-----
              """
 
+
 test_key_path = open("C:/Users/ryant/.BlockchainPKI/keys/public.pem","r")
+
+TEST_KEY_PATH = "/Users/noahcoomer/.BlockchainPKI/keys/public.pem"
+
+
 
 def register_transaction(name):
     _client = client.Client(name="test_client")
     _client.blockchain = create_test_chain()
     # print(_client.blockchain.last_block.transactions)
-    tx = _client.pki_register(test_key_path, name, test_key_path)
+
+    tx = _client.pki_register(TEST_KEY_PATH, name, TEST_KEY_PATH)
+
     try:
         if tx == -1:
             print("Exited with error.")
@@ -51,7 +59,9 @@ def query_transaction(query):
     _client = client.Client(name="test_client")
     _client.blockchain = create_test_chain()
     # print(_client.blockchain.last_block.transactions)
-    tx = _client.pki_query(test_key_path, query)
+
+    tx = _client.pki_query(TEST_KEY_PATH, query)
+
     try:
         if tx == -1:
             print("Exited with error.")
