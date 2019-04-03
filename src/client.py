@@ -30,7 +30,6 @@ class Client(object):
         self.validators_capath = validators_capath
         self._init_net()
 
-
     def _init_net(self):
         '''
             Initializes a TCP socket for incoming traffic and binds it.
@@ -240,20 +239,106 @@ class Client(object):
 
     def pki_validate(self, generator_public_key, name, public_key):
         '''
-
+        enable the user to check whether the name and public key are valid
+        return true if it is valid and false if it is not valid
         '''
-        tx = transaction.Transaction()
+        flag = False
+        gen = self.verify_public_key(generator_public_key)
+        if not gen:
+            print("The generator public key is incorrectly formatted. Please try again.")
+            return - 1
 
-        self.send_transaction(tx)
+        pub = self.verify_public_key(public_key)
+        if not pub:
+            print("The register public key is incorrectly formatted. Please try again.")
+            return -1
+        
+        if len(name) < 1 or len(name) > 255:
+            print("The name value must be between 1-255 characters.")
+            return -1 
+        flag = True
+
+        inputs = { "VALIDATE" : { "name" : name, "generator_public_key" : gen, "public_key" : pub } }
+        
+        outputs = dict()
+
+        if flag == True:
+            outputs = { "VALIDATE" : { "success" : True, "Validated" : True, "name" : name, "public_key" : pub } }
+        else:
+            outputs = { "VALIDATE" : { "success" : False, "message" : "cannot validate name and public key" } }
+
+
+        #dumps to JSON
+        inputs = json.dumps(inputs)
+        outputs = json.dumps(outputs)
+
+
+        tx = transaction.Transaction(transaction_type='standard', tx_generator_address=gen, inputs= inputs, outputs= outputs)
+
+        #self.send_transaction(tx)
         return tx
 
     def pki_update(self, generator_public_key, name, old_public_key, new_public_key):
         '''
+        enable the user to update the public key with the new public key 
+        return: the transaction with the new public key 
+        '''
 
         '''
-        tx = transaction.Transaction()
+        check whether the name and the old_public_key are in the blockchain  
+        '''
 
-        self.send_transaction(tx)
+        #verify the old_public_key
+        old_key = self.verify_public_key(old_public_key)
+        if not old_key:
+            print('this old public key is not formatted correctly')
+            return -1 
+        
+        #verify the new_public_key
+        new_key = self.verify_public_key(new_public_key)
+        if not new_key:
+            print('This new public key is not formatted correctly')
+            return -1 
+            
+
+        flag = False
+        for block in self.blockchain.chain:
+            for tx in block.transactions:
+                inputs = json.loads(tx.inputs)
+                for key in inputs.keys():
+                    try:
+                        if name == inputs[key]['name'] and old_public_key == inputs[key]['public_key']:
+                            flag = True
+                    except:
+                        continue
+                if flag == True:
+                    break
+            if flag == True:
+                break
+        
+
+        # Create the input for the update, for the input we have the name, old_public_key and the new_public_key 
+        inputs = { "UPDATE" : { "name" : name, "old_public_key" : old_key, "new_public_key" : new_key } }
+
+        # Create the output for the update 
+        outputs = dict()
+         
+        if flag == True:
+            outputs = { "UPDATE" : { "success" : True, "update" : True, "new_public_key" : new_key } }
+        else:
+            outputs = { "UPDATE" : { "success" : False, "message" : "cannot find the name and old public key" } }
+
+
+        #dumps to JSON
+        inputs = json.dumps(inputs)
+        outputs = json.dumps(outputs)
+
+        '''
+        this means that we found the name and the old_public_key in one of the transactions
+        Goal: need to add a new transaction that will have the same name but with a new public key 
+        '''
+        tx = transaction.Transaction(transaction_type='standard', inputs= inputs, outputs= outputs)
+        #self.send_transaction(tx)
         return tx
 
     def pki_revoke(self, generator_public_key, public_key):
@@ -318,7 +403,7 @@ class Client(object):
 
         # create the key dir if not created
         home_path = expanduser("~")
-        key_path = os.path.join(home_path, ".BlockchainPKI/keys/")
+        key_path = os.path.join(home_path, ".BlockchainPKI","keys")
         if not os.path.exists(key_path):
             print("Directory %s does not exist" % key_path)
             cont = input("Would you like to create %s? (y/n): " % key_path)
@@ -400,6 +485,8 @@ class Client(object):
                 print("Transactional Functions:\n\n ")
                 print("register                         -Register a name and public key on the blockchain.")
                 print("query                            -Query for a public key given a name.\n\n")
+                print("validate                         -verifies whether a pair of (name, public key) is valid or not")
+                print("update                           -Update a user's public key")
                 print("Local Functions:\n\n")
                 print("generate                         -Generate a public and private key pair.")
                 print("encrypt <public_key> <message>   -Encrypt a message with a public key.")
