@@ -54,7 +54,7 @@ class Transaction:
         pass
 
     def compute_hash(self):
-        tx_info = str(self)
+        tx_info = str(pickle.dumps(self))
         hash_256 = hashlib.sha256(tx_info.encode()).hexdigest()
         return hash_256
 
@@ -65,5 +65,6 @@ class Transaction:
         s = "<Transaction: "
         for attr, value in self.__dict__.items():
             s += "%s=%s, " % (attr, value or "None")
-        s += " >"
+        s = s[:-2].strip()
+        s += ">"
         return s
