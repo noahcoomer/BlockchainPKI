@@ -280,61 +280,6 @@ class Validator(object):
                 self.connections.append(val)
         f.close()
 
-    def verify_txs_from_merkel_root(self, merkel_root, first, last, validators):
-        '''
-            Verifies transactions from merkel root 
-
-            param: merkel_root: the merkel root created by the block generator from the new block
-            param: first: the position of the transaction in the mempool, but in the new block, it is considered the first transaction
-            param: last: the position of the transaction in the mempool, but in the new block, it is considered the last transaction
-            param: validators: list of validators
-        '''
-        transactions = []
-        for i in range(first, last+1):
-            transactions.append(self.mempool[i])
-
-        sha256_txs = self.hash_tx(transactions)
-        calculated_merkle_root = self.compute_merkle_root(sha256_txs)
-
-    def hash_tx(self, transaction):
-        '''
-            Returns a list of hashed transactions
-        '''
-        sha256_txs = []
-        # A hash of the root of the Merkel tree of this block's transactions.
-        for tx in transaction:
-            tx_hash = tx.compute_hash()
-            sha256_txs.append(tx_hash)
-        return sha256_txs
-
-    def compute_merkle_root(self, transactions):
-        # If the length of the list is 1 then return the final hash
-        if len(transactions) == 1:
-            return transactions[0]
-
-        new_tx_hashes = []
-        for tx_id in range(0, len(transactions)-1, 2):
-            tx_hash = self.hash_2_txs(
-                transactions[tx_id], transactions[tx_id+1])
-            new_tx_hashes.append(tx_hash)
-
-        # if the number of transactions is odd then hash the last item twice
-        if len(transactions % 2 == 1):
-            tx_hash = self.hash_2_txs(transactions[-1], transactions[-1])
-            new_tx_hashes.append(tx_hash)
-
-        return self.compute_merkle_root(new_tx_hashes)
-
-    def hash_2_txs(self, hash1, hash2):
-        '''
-            Returns the hash of two hashes
-        '''
-        # Reverse inputs before and after hashing because of the big-edian and little-endian problem
-        h1 = hash1.hexdigest()[::-1]
-        h2 = hash2.hexdigest()[::-1]
-        hash_return = hashlib.sha256((h1+h2).encode())
-        return hash_return.hexdigest()[::-1]
-
     def close(self):
         '''
             Closes a Validator and its net. Ignores Validators whose nets are not bound.
