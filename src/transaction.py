@@ -18,6 +18,10 @@ Questions: What kind of data type does registration, query, update, revoke can t
 what does update, revoke is for , and query?
 '''
 
+import time
+import hashlib
+import pickle
+
 
 class Transaction:
 

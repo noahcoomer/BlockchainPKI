@@ -32,14 +32,21 @@ TEST_KEY_3 = """-----BEGIN PUBLIC KEY-----
                 -----END PUBLIC KEY-----
              """
 
-TEST_KEY_PATH = open("/Users/noahcoomer/.BlockchainPKI/keys/public.pem", "r")
+
+test_key_path = open("C:/Users/ryant/.BlockchainPKI/keys/public.pem","r")
+
+TEST_KEY_PATH = "/Users/noahcoomer/.BlockchainPKI/keys/public.pem"
+
+
 
 
 def register_transaction(name):
     _client = client.Client(name="test_client")
     _client.blockchain = create_test_chain()
     # print(_client.blockchain.last_block.transactions)
+
     tx = _client.pki_register(TEST_KEY_PATH, name, TEST_KEY_PATH)
+
     try:
         if tx == -1:
             print("Exited with error.")
@@ -53,7 +60,9 @@ def query_transaction(query):
     _client = client.Client(name="test_client")
     _client.blockchain = create_test_chain()
     # print(_client.blockchain.last_block.transactions)
+
     tx = _client.pki_query(TEST_KEY_PATH, query)
+
     try:
         if tx == -1:
             print("Exited with error.")
