@@ -253,7 +253,7 @@ class Validator(object):
             if self.name == arr[0] and self.address == (arr[1], int(arr[2])):
                 continue
             else:
-                val = Validator(name=arr[0], addr=arr[1], port=int(arr[2]))
+                val = Validator(name=arr[0], addr=arr[1], port=int(arr[2]), bind=False)
                 self.connections.append(val)
         f.close()
 

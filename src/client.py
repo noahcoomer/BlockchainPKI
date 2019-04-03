@@ -15,7 +15,6 @@ import blockchain
 
 class Client(object):
     
-
     def __init__(self, name, addr="0.0.0.0", port=1234, validators_capath="~/.BlockchainPKI/validators/"):
         '''
             Initialize a Client object
@@ -30,8 +29,7 @@ class Client(object):
         self.validators_capath = validators_capath
         self.blockchain = None
         self.connections = []
-        self._init_net()
-        
+        self._init_net()   
 
     def _init_net(self):
         '''
@@ -93,7 +91,7 @@ class Client(object):
             if self.name == arr[0] and self.address == (arr[1], int(arr[2])):
                 continue
             else:
-                val = validator.Validator(name=arr[0], addr=arr[1], port=int(arr[2]))
+                val = validator.Validator(name=arr[0], addr=arr[1], port=int(arr[2]), bind=False)
                 self.connections.append(val)
         f.close()
 
@@ -110,7 +108,6 @@ class Client(object):
 
             :param Transaction tx: The transaction to send
         '''
-        #
         if self.net and self != val:
             # Connect to validators's inbound net using client's outbound net
             address = val.address
@@ -135,7 +132,6 @@ class Client(object):
         else:
             raise Exception(
                 "The validator must be initialized and listening for connections")
-        
 
     def update_blockchain(self):
         '''
