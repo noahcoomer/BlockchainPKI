@@ -23,13 +23,13 @@ class Client(object):
             :param str name: A canonical name
             :param str addr: The ip address for serving inbound connections
             :param int port: The port for serving inbound connections
-            :param str capath: 
+            :param str capath:
         '''
         self.name = name or socket.getfqdn(socket.gethostname())
-        self.address = addr, port 
+        self.address = addr, port
         self.validators_capath = validators_capath
         self._init_net()
-        
+
 
     def _init_net(self):
         '''
@@ -57,10 +57,10 @@ class Client(object):
                 self._init_net()  # Try to initialize the net again
         finally:
             self.context = ssl.create_default_context()
-        
+
     def _load_other_ca(self, capath=None):
         '''
-            Loads a set of CAs from a directory 
+            Loads a set of CAs from a directory
             into the sending context
         '''
         assert self.context != None, "Initialize the send context before loading CAs."
@@ -111,7 +111,7 @@ class Client(object):
         else:
             raise Exception(
                 "The validator must be initialized and listening for connections")
-        
+
 
     def update_blockchain(self):
         '''
@@ -257,13 +257,33 @@ class Client(object):
         return tx
 
     def pki_revoke(self, generator_public_key, public_key):
+        def pki_revoke(self, generator_public_key, public_key):
         '''
-
+            Revoke a public key
         '''
-        tx = transaction.Transaction()
+        # Bool to check if a public key was found in the list
+        revoked_key = false
+        # List to store the public keys from the file
+        public_keys = []
+        # Name of the file storing public keys
+        filename = "public_keys.txt"
+        # Open the file in read mode and copy contents to a variable
+        with open(filename, "r") as file:
+            public_keys = file.readlines()
+        # Open the file containing the public keys
+        with open(filename,"w") as file:
+            # Check to see if the public key we're looking to revoke exists within the list
+            for pKey in public_keys:
+                # If the public key exists, replace the key with the message that it's been revoked
+                if pKey == public_key:
+                    file.write("Revoked public key:" + pKey + "\n")
+                    revoked_key = True
+                # If the key looking to be revoked doesn't exist in the list, continuing rewriting the list with original content
+                else:
+                    file.write(pKey + "\n")
+        # Removing the files takes away from the blockchain aspect of the records being immutable
 
-        self.send_transaction(tx)
-        return tx
+        return revoked_key
 
     @staticmethod
     def generate_keys():
@@ -437,7 +457,7 @@ class Client(object):
         '''
         if self.net:
             self.net.close()
-            
+
 if __name__ == "__main__":
     # Generates private and public key
     ##    private_key, public_key = Client.generate_keys()
@@ -453,7 +473,7 @@ if __name__ == "__main__":
 
     Client1 = Client(name="Client 1")
     Client1._load_other_ca(capath=Client1.validators_capath)
-        
+
     # Update the blockchain
     print("Updating blockchain. This may take a while.")
     Client1.blockchain = Client1.update_blockchain()
