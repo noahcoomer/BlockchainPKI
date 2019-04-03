@@ -23,13 +23,13 @@ class Client(object):
             :param str name: A canonical name
             :param str addr: The ip address for serving inbound connections
             :param int port: The port for serving inbound connections
-            :param str capath: 
+            :param str capath:
         '''
         self.name = name or socket.getfqdn(socket.gethostname())
-        self.address = addr, port 
+        self.address = addr, port
         self.validators_capath = validators_capath
         self._init_net()
-        
+
 
     def _init_net(self):
         '''
@@ -57,10 +57,10 @@ class Client(object):
                 self._init_net()  # Try to initialize the net again
         finally:
             self.context = ssl.create_default_context()
-        
+
     def _load_other_ca(self, capath=None):
         '''
-            Loads a set of CAs from a directory 
+            Loads a set of CAs from a directory
             into the sending context
         '''
         assert self.context != None, "Initialize the send context before loading CAs."
@@ -111,7 +111,7 @@ class Client(object):
         else:
             raise Exception(
                 "The validator must be initialized and listening for connections")
-        
+
 
     def update_blockchain(self):
         '''
@@ -258,11 +258,51 @@ class Client(object):
 
     def pki_revoke(self, generator_public_key, public_key):
         '''
-
+            Revoke a public key
         '''
-        tx = transaction.Transaction()
 
-        self.send_transaction(tx)
+        # input verification
+        gen = self.verify_public_key(generator_public_key)
+        if not gen:
+            print("The generator public key is incorrectly formatted. Please try again.")
+            return -1
+
+        pub = self.verify_public_key(public_key)
+        if not pub:
+            print("The entered public key is incorrectly formatted. Please try again.")
+            return -1
+
+        inputs = { "REVOKE" : { "public_key" : pub } }
+
+        # Query blockchain, break if we find our public key
+        flag = False
+        for block in reversed(self.blockchain.chain):
+            for tx in block.transactions:
+                inputs = json.loads(tx.inputs)
+                for key in inputs.keys(): # should only be 1 top level key - still O(1)
+                    try:
+                        if public_key == inputs[key]["public_key"]:
+                            flag = True
+                            break
+                    except:
+                        continue
+                if flag == True:
+                    break
+            if flag == True:
+                break
+
+        outputs = dict()
+        if flag == True:
+            outputs = { "REVOKE" : { "success" : True } }
+        else:
+            outputs = { "REVOKE" : { "success" : False, "message" : "Public key not found." } }
+
+        inputs = json.dumps(inputs)
+        outputs = json.dumps(outputs)
+
+        tx = transaction.Transaction(transaction_type="Standard", tx_generator_address=gen,
+                                    inputs=inputs, outputs=outputs)
+
         return tx
 
     @staticmethod
@@ -437,7 +477,7 @@ class Client(object):
         '''
         if self.net:
             self.net.close()
-            
+
 if __name__ == "__main__":
     # Generates private and public key
     ##    private_key, public_key = Client.generate_keys()
@@ -453,7 +493,7 @@ if __name__ == "__main__":
 
     Client1 = Client(name="Client 1")
     Client1._load_other_ca(capath=Client1.validators_capath)
-        
+
     # Update the blockchain
     print("Updating blockchain. This may take a while.")
     Client1.blockchain = Client1.update_blockchain()
