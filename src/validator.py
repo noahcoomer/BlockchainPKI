@@ -287,7 +287,6 @@ class Validator(object):
                       previous_hash=self.blockchain.last_block.hash)
         self.broadcast(block)
 
-<<<<<<< HEAD
     def verify_txs_from_merkel_root(self, merkel_root, first, last, validators):
         '''
             Verifies transactions from merkel root 
@@ -350,7 +349,6 @@ class Validator(object):
         if self.bound:
             self.net.close()
 
-=======
     def verify_txs(self, block, validators):
         '''
         params - block - the new generated block sent from block generator
@@ -361,7 +359,6 @@ class Validator(object):
 
         return True
         
->>>>>>> 9736d0af50f4453cb8915a2abeb6d0d637b478bb
 
 if __name__ == "__main__":
     port = int(input("Enter a port number: "))
