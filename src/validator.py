@@ -163,7 +163,9 @@ class Validator(object):
                     # (until the client sends empty data)
                     DATA += data
                     data = secure_conn.recv(BUFF_SIZE)
+
                 # Deserialize the entire object when data reception has ended
+<<<<<<< HEAD
                 decoded_message = pickle.loads(DATA)
                 print("Received data from %s:%d: %s" %
                       (addr[0], addr[1], decoded_message))
@@ -184,6 +186,29 @@ class Validator(object):
                         self.create_block(self.mempool[:10])
                 elif type(decoded_message) == Block:
                     print("Call verification/consensus function to vote on Block")
+=======
+                try:
+                    data = pickle.loads(DATA)
+                except pickle.UnpicklingError:
+                    # The data received most likely wasn't a Transaction
+                    data = DATA.decode()
+
+                if type(data) == Transaction:
+                    # check if this transaction is in mempool
+                    start_time = int(time.time())
+                    # Add transaction to the pool
+                    self.add_transaction(data)
+                    end_time = int(time.time())
+                    if (end_time - start_time) >= 10 and len(self.mempool) >= 10:
+                        print("Call Round Robin to chose the leader")
+                else:
+                    print("Data received was not of type Transaction, but of type %s: \n%s\n" % (
+                        type(data), data))
+
+                # broadcast to network
+
+                # return decoded_transaction
+>>>>>>> 53e78c647cb1b538a3c8606ce278669361d6c71a
         except socket.timeout:
             pass
 
@@ -191,6 +216,7 @@ class Validator(object):
         '''
             Receive incoming transactions and add to mempool
         '''
+<<<<<<< HEAD
         if transaction.status == 'Yes':
             pass
         elif transaction.status == 'No':
@@ -199,6 +225,11 @@ class Validator(object):
             if transaction not in self.mempool:
                 transaction.status = "Open"
                 self.mempool.append(transaction)
+=======
+        if transaction not in self.mempool:
+            transaction.status = "OPEN"
+            self.mempool.append(transaction)
+>>>>>>> 53e78c647cb1b538a3c8606ce278669361d6c71a
 
     def message(self, v, msg):
         '''
@@ -264,35 +295,14 @@ class Validator(object):
                       previous_hash=self.blockchain.last_block.hash)
         self.broadcast(block)
 
-    def close(self):
-        '''
-            Closes a Validator and its net. Ignores Validators whose nets are not bound.
-        '''
-        if self.bound:
-            self.net.close()
-
-    ''' # Get the merkel root from the block.
-    # Recalculate the merkel root from the pool. When the Block Generator is chosen
-    # from Round Robin Algorithm, he/she will send the update to all of the validator
-    # nodes. The update will contain the first and last position of the proposed 
-    # transactions (transactions inside a new block in propose status) inside the pool 
-    # 
-    # Use the position to pull the transactions from the local pool and recalculate the
-    # merkel root. Compare the new block's merkel root with recalculated merkel root. If they
-    # are the same then send YES. '''
-
     def verify_txs_from_merkel_root(self, merkel_root, first, last, validators):
         '''
-        params - merkel_root - the merkel root created by the block generator from 
-                               the new block
+            Verifies transactions from merkel root 
 
-        params: first - the position of the transaction in the mempool, but in the 
-                        new block, it is considered the first transaction
-
-        params: last - the position of the transaction in the mempool, but in the 
-                       new block, it is considered the last transaction
-
-        params: validators - list of validators
+            param: merkel_root: the merkel root created by the block generator from the new block
+            param: first: the position of the transaction in the mempool, but in the new block, it is considered the first transaction
+            param: last: the position of the transaction in the mempool, but in the new block, it is considered the last transaction
+            param: validators: list of validators
         '''
         transactions = []
         for i in range(first, last+1):
@@ -301,36 +311,16 @@ class Validator(object):
         sha256_txs = self.hash_tx(transactions)
         calculated_merkle_root = self.compute_merkle_root(sha256_txs)
 
-        # ============Test Data====================
-        Alice = Validator(port=1234, cafile="/mnt/c/Users/owner/Documents/University of Memphis/Capstone Project/workspace/blockchainPKI/rootCA.pem",
-                          keyfile="/mnt/c/Users/owner/Documents/University of Memphis/Capstone Project/workspace/blockchainPKI/rootCA.key")
-        # Marshal = Validator(name="marshal-mbp.memphis.edu",
-        #                addr="10.101.70.197", port=7123, bind=False)
-        # Brandon = Validator(name="brandonsmacbook.memphis.edu",
-        #                addr="10.102.114.244", bind=False)
-        for v in validators:
-            if calculated_merkle_root == merkel_root:
-                Alice.message(v, "YES")
-            else:
-                Alice.message(v, "NO")
-
-        # ============Test Data====================
-
-    # Return a list of hashed transactions
-
     def hash_tx(self, transaction):
+        '''
+            Returns a list of hashed transactions
+        '''
         sha256_txs = []
         # A hash of the root of the Merkel tree of this block's transactions.
         for tx in transaction:
             tx_hash = tx.compute_hash()
             sha256_txs.append(tx_hash)
-
         return sha256_txs
-
-    # Return the root of the hash tree of all the transactions in the block's transaction pool (Recursive Function)
-    # Assuming each transaction in the transaction pool was HASHed in the Validator class (Ex: encode with binascii.hexlify(b'Blaah'))
-    # The number of the transactions hashes in the pool has to be even.
-    # If the number is odd, then hash the last item of the list twice
 
     def compute_merkle_root(self, transactions):
         # If the length of the list is 1 then return the final hash
@@ -338,10 +328,7 @@ class Validator(object):
             return transactions[0]
 
         new_tx_hashes = []
-
-        # for(t_id = 0, t_id < len(transactions) - 1, t_id = t_id + 2)
         for tx_id in range(0, len(transactions)-1, 2):
-
             tx_hash = self.hash_2_txs(
                 transactions[tx_id], transactions[tx_id+1])
             new_tx_hashes.append(tx_hash)
@@ -353,14 +340,22 @@ class Validator(object):
 
         return self.compute_merkle_root(new_tx_hashes)
 
-    # Hash two hashes together -> return 1 final hash
     def hash_2_txs(self, hash1, hash2):
+        '''
+            Returns the hash of two hashes
+        '''
         # Reverse inputs before and after hashing because of the big-edian and little-endian problem
         h1 = hash1.hexdigest()[::-1]
         h2 = hash2.hexdigest()[::-1]
         hash_return = hashlib.sha256((h1+h2).encode())
-
         return hash_return.hexdigest()[::-1]
+
+    def close(self):
+        '''
+            Closes a Validator and its net. Ignores Validators whose nets are not bound.
+        '''
+        if self.bound:
+            self.net.close()
 
 
 if __name__ == "__main__":
@@ -369,8 +364,22 @@ if __name__ == "__main__":
     # val.create_connections()
     # val.update_blockchain()
 
+<<<<<<< HEAD
     try:
         while True:
             val.receive()
+=======
+    tx = pickle.dumps(Transaction(version=0.1, transaction_type='regular', tx_generator_address='0.0.0.0',
+                                  inputs='', outputs='', lock_time=0))
+    try:
+        while True:
+            # Send the serialized transaction to Bob
+            Alice.message(Bob, tx)
+            time.sleep(1)
+
+            # Send Bob something that isn't a transaction
+            Alice.message(Bob, b"Hello, Bob!")
+            time.sleep(1)
+>>>>>>> 53e78c647cb1b538a3c8606ce278669361d6c71a
     except KeyboardInterrupt:
         val.close()
