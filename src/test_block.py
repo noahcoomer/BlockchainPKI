@@ -41,7 +41,13 @@ def new_block():
         print(t)
     print("\nMerkel root of the block is ", bl.merkle_root)
     print("Hash of the block is ", bl.hash)
+
+    test_verification(vl, bl)
         
+
+def test_verification(validator, block):
+    print("\nSend block to validator for verification\nReturn: ", end="")
+    print(validator.verify_txs(block))
 
 
 def main():

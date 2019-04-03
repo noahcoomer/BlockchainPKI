@@ -271,11 +271,12 @@ class Validator(object):
             self.net.close()
 
 
-    def verify_txs(self, block, validators):
+    def verify_txs(self, block):
         '''
         params - block - the new generated block sent from block generator
         '''
         for tx in block.transactions:
+            tx = str(tx)
             if tx not in self.mempool:
                 return False
 
