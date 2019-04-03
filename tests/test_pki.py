@@ -32,10 +32,14 @@ TEST_KEY_3 = """-----BEGIN PUBLIC KEY-----
                 -----END PUBLIC KEY-----
              """
 
+<<<<<<< HEAD
 
 test_key_path = open("C:/Users/ryant/.BlockchainPKI/keys/public.pem","r")
 
 TEST_KEY_PATH = "/Users/noahcoomer/.BlockchainPKI/keys/public.pem"
+=======
+TEST_KEY_PATH = open("/Users/noahcoomer/.BlockchainPKI/keys/public.pem", "r")
+>>>>>>> c14aebd41db225fe6255382644216841894c70ed
 
 
 

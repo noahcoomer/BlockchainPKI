@@ -10,7 +10,7 @@ import pickle
 class Block:
     def __init__(self, version=0.1, id=None, transactions=[], previous_hash=None, block_generator_address=None,
                  block_generation_proof=None, nonce=None, status=None):
-        
+
         # A version number to track software protocol upgrades
         self.version = version
         self.id = id                   # Block index or block height
@@ -61,8 +61,9 @@ class Block:
 
     # Return the root of the hash tree of all the transactions in the block's transaction pool (Recursive Function)
     # Assuming each transaction in the transaction pool was HASHed in the Validator class (Ex: encode with binascii.hexlify(b'Blaah'))
-    # The number of the transactions hashes in the pool has to be even. 
+    # The number of the transactions hashes in the pool has to be even.
     # If the number is odd, then hash the last item of the list twice
+
     def compute_merkle_root(self, transactions):
         # If the length of the list is 1 then return the final hash
         if len(transactions) == 1:
@@ -70,9 +71,11 @@ class Block:
 
         new_tx_hashes = []
 
-        for tx_id in range(0, len(transactions)-1, 2):  # for(t_id = 0, t_id < len(transactions) - 1, t_id = t_id + 2)
-            
-            tx_hash = self.hash_2_txs(transactions[tx_id], transactions[tx_id+1])
+        # for(t_id = 0, t_id < len(transactions) - 1, t_id = t_id + 2)
+        for tx_id in range(0, len(transactions)-1, 2):
+
+            tx_hash = self.hash_2_txs(
+                transactions[tx_id], transactions[tx_id+1])
             new_tx_hashes.append(tx_hash)
 
         # if the number of transactions is odd then hash the last item twice
@@ -82,8 +85,8 @@ class Block:
 
         return self.compute_merkle_root(new_tx_hashes)
 
-
     # Hash two hashes together -> return 1 final hash
+
     def hash_2_txs(self, hash1, hash2):
         # Reverse inputs before and after hashing because of the big-edian and little-endian problem
         h1 = hash1[::-1]
@@ -92,16 +95,13 @@ class Block:
 
         return hash_return.hexdigest()[::-1]
 
-
-    def compute_hash(self): 
+    def compute_hash(self):
         block_info = str(self)
         hash_256 = hashlib.sha256(block_info.encode()).hexdigest()
         return hash_256
 
-    
     def __eq__(self, other):
-        return hash(self) == hash(other)
-
+        return self.compute_hash() == other.compute_hash()
 
     def __str__(self):
         bit_str = str(pickle.dumps(self))
