@@ -8,7 +8,7 @@ import pickle
 
 
 class Block:
-    def __init__(self, version=0.1, id=None, transactions=transactions, previous_hash=None, block_generator_address=None,
+    def __init__(self, version=0.1, id=None, transactions=[], previous_hash=None, block_generator_address=None,
                  block_generation_proof=None, nonce=None, status=None):
 
         # A version number to track software protocol upgrades
