@@ -8,14 +8,14 @@ import pickle
 
 
 class Block:
-    def __init__(self, version=0.1, id=None, transaction=None, previous_hash=None, block_generator_address=None,
+    def __init__(self, version=0.1, id=None, transactions=[], previous_hash=None, block_generator_address=None,
                  block_generation_proof=None, nonce=None, status=None):
         
         # A version number to track software protocol upgrades
         self.version = version
         self.id = id                   # Block index or block height
         # Transaction pool created by validator calling add_transaction() method
-        self.transactions = transaction   
+        self.transactions = transactions  
         # Transaction pool with hashed transactions
         self.sha256_txs = []        
         # A reference to the previous (parent) block in the chain
