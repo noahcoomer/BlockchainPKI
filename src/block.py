@@ -21,7 +21,7 @@ class Block:
         # A reference to the previous (parent) block in the chain
         self.previous_hash = previous_hash
         # Calculate merkel root based on the transaction inside the transaction pool
-        self.merkle_root = self.merkle_root_hash(self.transactions)
+        #self.merkle_root = self.merkle_root_hash(self.transactions)
         # Public key of the Validator node proposed and broadcast the block
         self.block_generator_address = block_generator_address
         # Aggregated signature of Block Generator & Validator

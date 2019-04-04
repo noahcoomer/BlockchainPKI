@@ -33,9 +33,11 @@ TEST_KEY_3 = """-----BEGIN PUBLIC KEY-----
              """
 
 
-test_key_path = open("C:/Users/ryant/.BlockchainPKI/keys/public.pem","r")
+TEST_KEY_PATH = 'C:/Users/ryant/.BlockchainPKI/keys/public.pem'
 
-TEST_KEY_PATH = "/Users/noahcoomer/.BlockchainPKI/keys/public.pem"
+TEST_KEY_PATH_FOR_NEW_PUB_KEY = 'C:/Users/ryant/.BlockchainPKI/keys/new_pub.pem'
+
+#TEST_KEY_PATH = "/Users/noahcoomer/.BlockchainPKI/keys/public.pem"
 
 
 
@@ -69,6 +71,32 @@ def query_transaction(query):
     except:
         # print_transaction_info(tx)
         return tx
+
+def validate_transaction(name):
+    _client = client.Client(name="test_client")
+    _client.blockchain = create_test_chain()
+    tx = _client.pki_validate(TEST_KEY_PATH, name, TEST_KEY_PATH)
+    
+    try: 
+        if tx == -1:
+            print("Exited with error.")
+            return
+    except:
+        return tx
+
+
+def update_transaction(name):
+    _client = client.Client(name="test_client")
+    _client.blockchain = create_test_chain()
+    tx = _client.pki_update(TEST_KEY_PATH, name, TEST_KEY_PATH, TEST_KEY_PATH_FOR_NEW_PUB_KEY)
+
+    try: 
+        if tx == -1:
+            print("Exited with error.")
+            return
+    except:
+        return tx
+
 
 
 def create_test_chain():

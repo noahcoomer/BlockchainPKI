@@ -139,7 +139,7 @@ class Client(object):
 
         pub = self.verify_public_key(public_key)
         if not pub:
-            print("The register public key is incorrectly formatted. Please try again.")
+            print("The register public key i s incorrectly formatted. Please try again.")
             return -1
 
         inputs = { "REGISTER" : { name : pub } }
@@ -464,7 +464,8 @@ class Client(object):
                     passphrase - if the key requires a passphrase use it, otherwise passphrase should be None
         '''
         try:
-            key = RSA.import_key(public_key.read())
+            my_key = open(public_key)
+            key = RSA.import_key(my_key.read())
             key = key.publickey().export_key()
             return key.decode()
         except ValueError:
