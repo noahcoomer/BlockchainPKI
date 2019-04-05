@@ -30,6 +30,8 @@ class Validator(Node):
         '''
         super().__init__(hostname=hostname, addr=addr, port=port, bind=bind, capath=capath)
 
+        self.mempool = list()
+
         self.certfile = certfile.replace('~', os.environ['HOME'])
         self.keyfile = keyfile.replace('~', os.environ['HOME'])
 
@@ -66,8 +68,14 @@ class Validator(Node):
         with open(path, 'wb') as f:
             f.write(data)
         print("New CA added at %s" % path)
-        self._load_other_ca(self.capath)
+        self.load_other_ca(self.capath)
         print("Reloaded Validator CAs")
+
+    def broadcast(self, tx):
+        '''
+            Broadcasts a transaction to connections
+        '''
+        pass
 
     def receive(self, mode='secure'):
         '''
@@ -169,7 +177,7 @@ class Validator(Node):
             transaction=block_tx_pool,
             previous_hash="Blockchain.last_block(Blockchain)",
             block_generator_address=self.address,
-            block_generation_proof=self.cafile,
+            block_generation_proof=self.certfile,
             nonce=0,
             status="Proposed"
         )
@@ -192,7 +200,7 @@ class Validator(Node):
             if isinstance(msg, str):
                 msg = msg.encode()  # encode the msg to binary
             print("Attempting to send to %s:%s" % v.address)
-            secure_conn = self.send_context.wrap_socket(
+            secure_conn = self.context.wrap_socket(
                 socket.socket(socket.AF_INET, socket.SOCK_STREAM), server_hostname=v.name)
             try:
                 secure_conn.connect(address)  # Connect to v
