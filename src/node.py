@@ -12,18 +12,25 @@ class Node(ABC):
         Base class for a generic node
     '''
 
-    def __init__(self, hostname=None, addr="0.0.0.0", port=4848, capath="~/.BlockchainPKI/validators/"):
+    def __init__(self, hostname=None, addr="0.0.0.0", port=4848, bind=True, capath="~/.BlockchainPKI/validators/"):
         '''
             Initialize the Node object
 
             :param str hostname: The fully qualified domain name
             :param str addr: The ip address to bind to
             :param int port: The port to bind to
+            :param bool bind: Whether or not to bind a socket
             :param str capath: The path to the Validators CAs
         '''
-        self.hostname = hostname or socket.getfqdn(socket.gethostname())
         self.address = (addr, port)
-        self._init_net()
+        self.capath = capath.replace('~', os.environ['HOME'])
+
+        if not bind:
+            assert hostname != None, "Hostname must be specified when not binding"
+            self.hostname = hostname
+        else:
+            self.hostname = hostname or socket.getfqdn(socket.gethostname())
+            self._init_net()
 
     def _init_net(self):
         '''
