@@ -1,5 +1,5 @@
 from node import Node
-from validator import Validator 
+from validator import Validator
 from blockchain import Blockchain
 from transaction import Transaction
 
@@ -7,7 +7,15 @@ from Crypto import Random
 from Crypto.PublicKey import RSA
 from os.path import expanduser
 
-import os, ssl, json, time, errno, socket, base64, pickle
+import os
+import ssl
+import json
+import time
+import errno
+import socket
+import base64
+import pickle
+
 
 class Client(Node):
     def __init__(self, hostname=None, addr="0.0.0.0", port=4848, capath="~/.BlockchainPKI/validators/"):
@@ -41,7 +49,7 @@ class Client(Node):
 
     def message(self, v, tx):
         '''
-            Sends a Transaction to a Validator 
+            Sends a Transaction to a Validator
 
             :param Validator v: The validator to send to
             :param Transaction tx: The transaction to send
@@ -217,8 +225,8 @@ class Client(Node):
 
     def pki_update(self, generator_public_key, name, old_public_key, new_public_key):
         '''
-            Updates the public key with the new public key 
-            Returns the transaction with the new public key 
+            Updates the public key with the new public key
+            Returns the transaction with the new public key
         '''
 
         # verify the old_public_key

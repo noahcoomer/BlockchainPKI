@@ -1,10 +1,10 @@
-import hashlib
 from hashlib import sha256
+
 import time
 import json
-import datetime as date
 import time
 import pickle
+import datetime as date
 
 
 class Block:
@@ -15,9 +15,9 @@ class Block:
         self.version = version
         self.id = id                   # Block index or block height
         # Transaction pool created by validator calling add_transaction() method
-        self.transactions = transactions  
+        self.transactions = transactions
         # Transaction pool with hashed transactions
-        self.sha256_txs = []        
+        self.sha256_txs = []
         # A reference to the previous (parent) block in the chain
         self.previous_hash = previous_hash
         # Calculate merkel root based on the transaction inside the transaction pool
@@ -33,31 +33,30 @@ class Block:
         self.status = status
         # Total number of transaction included in this block => This will be used to verify the transaction from merkel root
         self.t_counter = len(self.transactions)
-        self.timestamp = int(time.time())            # Creation time of this block
+        # Creation time of this block
+        self.timestamp = int(time.time())
         # The hash of the block header
         self.hash = self.compute_hash()
 
-
-
     # Hash all transactions in the list. Pass a list of hashed transactions to
     # compute_merkle_root(list) method to calculate the merkel root from the list of transactions
+
     def merkle_root_hash(self, transactions):
         '''
         params: tranaction - list of raw transaction
 
         '''
         for tx in transactions:
-            tx_hash = hashlib.sha256(tx.encode()).hexdigest()
+            tx_hash = sha256(tx.encode()).hexdigest()
             self.sha256_txs.append(tx_hash)
 
         # Initialize merkel root when the block is empty (no transaction)
         if self.sha256_txs == []:
-            return hashlib.sha256("0".encode()).hexdigest()
+            return sha256("0".encode()).hexdigest()
 
         merkle_hash = self.compute_merkle_root(self.sha256_txs)
 
         return merkle_hash
-
 
     # Return the root of the hash tree of all the transactions in the block's transaction pool (Recursive Function)
     # Assuming each transaction in the transaction pool was HASHed in the Validator class (Ex: encode with binascii.hexlify(b'Blaah'))
@@ -72,10 +71,10 @@ class Block:
         new_tx_hashes = []
 
         # for(t_id = 0, t_id < len(transactions) - 1, t_id = t_id + 2)
-        for tx_id in range(0, len(transactions)-1, 2):
+        for tx_id in range(0, len(transactions) - 1, 2):
 
             tx_hash = self.hash_2_txs(
-                transactions[tx_id], transactions[tx_id+1])
+                transactions[tx_id], transactions[tx_id + 1])
             new_tx_hashes.append(tx_hash)
 
         # if the number of transactions is odd then hash the last item twice
@@ -91,13 +90,13 @@ class Block:
         # Reverse inputs before and after hashing because of the big-edian and little-endian problem
         h1 = hash1[::-1]
         h2 = hash2[::-1]
-        hash_return = hashlib.sha256((h1+h2).encode())
+        hash_return = sha256((h1 + h2).encode())
 
         return hash_return.hexdigest()[::-1]
 
     def compute_hash(self):
         block_info = str(self)
-        hash_256 = hashlib.sha256(block_info.encode()).hexdigest()
+        hash_256 = sha256(block_info.encode()).hexdigest()
         return hash_256
 
     def __eq__(self, other):
@@ -106,6 +105,3 @@ class Block:
     def __str__(self):
         bit_str = str(pickle.dumps(self))
         return bit_str
-
-
-

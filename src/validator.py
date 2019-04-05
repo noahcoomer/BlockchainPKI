@@ -7,7 +7,7 @@ from blockchain import Blockchain
 from transaction import Transaction
 
 import os
-import ssl 
+import ssl
 import time
 import errno
 import pickle
@@ -18,9 +18,10 @@ INCONN_THRESH = 128
 OUTCONN_THRESH = 8
 BUFF_SIZE = 2048
 
+
 class Validator(Node):
-    def __init__(self, hostname=None, addr="0.0.0.0", port=4848, bind=True, capath="~/.BlockchainPKI/validators/", 
-        certfile="~/.BlockchainPKI/rootCA.pem", keyfile="~/.BlockchainPKI/rootCA.key"):
+    def __init__(self, hostname=None, addr="0.0.0.0", port=4848, bind=True, capath="~/.BlockchainPKI/validators/",
+                 certfile="~/.BlockchainPKI/rootCA.pem", keyfile="~/.BlockchainPKI/rootCA.key"):
         '''
             Initialize a Validator
 
@@ -32,7 +33,8 @@ class Validator(Node):
         self.certfile = certfile.replace('~', os.environ['HOME'])
         self.keyfile = keyfile.replace('~', os.environ['HOME'])
 
-        self.receive_context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
+        self.receive_context = ssl.create_default_context(
+            ssl.Purpose.CLIENT_AUTH)
         self.receive_context.load_cert_chain(self.certfile, self.keyfile)
 
     def save_new_certfile(self, data):
@@ -41,7 +43,8 @@ class Validator(Node):
 
             :param bytearray data: The certificate file
         '''
-        newfilename = lambda namelength: ''.join(choice(ascii_uppercase + ascii_lowercase + digits) for _ in range(namelength))
+        def newfilename(namelength): return ''.join(
+            choice(ascii_uppercase + ascii_lowercase + digits) for _ in range(namelength))
 
         # Create a random filename of length 15
         filename = newfilename(15)
@@ -171,7 +174,7 @@ class Validator(Node):
             status="Proposed"
         )
         return bl
-    
+
     def message(self, v, msg):
         '''
             Send a message to another Validator
@@ -206,7 +209,7 @@ class Validator(Node):
         else:
             raise Exception(
                 "The net must be initialized and listening for connections")
-    
+
     def send_certificate(self, addr, port):
         '''
             Sends the certificate to addr:port through
@@ -238,7 +241,7 @@ class Validator(Node):
             param: validators: list of validators
         '''
         transactions = []
-        for i in range(first, last+1):
+        for i in range(first, last + 1):
             transactions.append(self.mempool[i])
 
         sha256_txs = self.hash_tx(transactions)
@@ -261,9 +264,9 @@ class Validator(Node):
             return transactions[0]
 
         new_tx_hashes = []
-        for tx_id in range(0, len(transactions)-1, 2):
+        for tx_id in range(0, len(transactions) - 1, 2):
             tx_hash = self.hash_2_txs(
-                transactions[tx_id], transactions[tx_id+1])
+                transactions[tx_id], transactions[tx_id + 1])
             new_tx_hashes.append(tx_hash)
 
         # if the number of transactions is odd then hash the last item twice
@@ -280,7 +283,7 @@ class Validator(Node):
         # Reverse inputs before and after hashing because of the big-edian and little-endian problem
         h1 = hash1.hexdigest()[::-1]
         h2 = hash2.hexdigest()[::-1]
-        hash_return = hashlib.sha256((h1+h2).encode())
+        hash_return = hashlib.sha256((h1 + h2).encode())
         return hash_return.hexdigest()[::-1]
 
     def verify_txs(self, block, validators):
@@ -292,10 +295,11 @@ class Validator(Node):
                 return False
         return True
 
+
 if __name__ == "__main__":
     port = int(input("Enter a port number: "))
     val = Validator(port=port)
-    val2 = Validator(port=port+1)
+    val2 = Validator(port=port + 1)
     # val.create_connections()
     # val.update_blockchain()
 
