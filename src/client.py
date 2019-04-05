@@ -22,14 +22,12 @@ class Client(object):
             :param str name: A canonical name
             :param str addr: The ip address for serving inbound connections
             :param int port: The port for serving inbound connections
-            :param str capath: 
+            :param str capath:
         '''
         self.name = name or socket.getfqdn(socket.gethostname())
-        self.address = addr, port 
+        self.address = addr, port
         self.validators_capath = validators_capath
-        self.blockchain = None
-        self.connections = []
-        self._init_net()   
+        self._init_net()
 
     def _init_net(self):
         '''
@@ -57,8 +55,12 @@ class Client(object):
                 self._init_net()  # Try to initialize the net again
         finally:
             self.context = ssl.create_default_context()
+<<<<<<< HEAD
             self._load_other_ca(capath=self.validators_capath)
         
+=======
+
+>>>>>>> 916b05d916ef8d3338642fc811c4187715301cb1
     def _load_other_ca(self, capath=None):
         '''
             Loads a set of CAs from a directory
@@ -144,6 +146,10 @@ class Client(object):
         else:
             raise Exception(
                 "The validator must be initialized and listening for connections")
+<<<<<<< HEAD
+=======
+
+>>>>>>> 916b05d916ef8d3338642fc811c4187715301cb1
 
     def update_blockchain(self):
         '''
@@ -272,29 +278,155 @@ class Client(object):
 
     def pki_validate(self, generator_public_key, name, public_key):
         '''
-
+        enable the user to check whether the name and public key are valid
+        return true if it is valid and false if it is not valid
         '''
-        tx = transaction.Transaction()
+        flag = False
+        gen = self.verify_public_key(generator_public_key)
+        if not gen:
+            print("The generator public key is incorrectly formatted. Please try again.")
+            return - 1
 
-        self.send_transaction(tx)
+        pub = self.verify_public_key(public_key)
+        if not pub:
+            print("The register public key is incorrectly formatted. Please try again.")
+            return -1
+        
+        if len(name) < 1 or len(name) > 255:
+            print("The name value must be between 1-255 characters.")
+            return -1 
+        flag = True
+
+        inputs = { "VALIDATE" : { "name" : name, "generator_public_key" : gen, "public_key" : pub } }
+        
+        outputs = dict()
+
+        if flag == True:
+            outputs = { "VALIDATE" : { "success" : True, "Validated" : True, "name" : name, "public_key" : pub } }
+        else:
+            outputs = { "VALIDATE" : { "success" : False, "message" : "cannot validate name and public key" } }
+
+
+        #dumps to JSON
+        inputs = json.dumps(inputs)
+        outputs = json.dumps(outputs)
+
+
+        tx = transaction.Transaction(transaction_type='standard', tx_generator_address=gen, inputs= inputs, outputs= outputs)
+
+        #self.send_transaction(tx)
         return tx
 
     def pki_update(self, generator_public_key, name, old_public_key, new_public_key):
         '''
+        enable the user to update the public key with the new public key 
+        return: the transaction with the new public key 
+        '''
 
         '''
-        tx = transaction.Transaction()
+        check whether the name and the old_public_key are in the blockchain  
+        '''
 
-        self.send_transaction(tx)
+        #verify the old_public_key
+        old_key = self.verify_public_key(old_public_key)
+        if not old_key:
+            print('this old public key is not formatted correctly')
+            return -1 
+        
+        #verify the new_public_key
+        new_key = self.verify_public_key(new_public_key)
+        if not new_key:
+            print('This new public key is not formatted correctly')
+            return -1 
+            
+
+        flag = False
+        for block in self.blockchain.chain:
+            for tx in block.transactions:
+                inputs = json.loads(tx.inputs)
+                for key in inputs.keys():
+                    try:
+                        if name == inputs[key]['name'] and old_public_key == inputs[key]['public_key']:
+                            flag = True
+                    except:
+                        continue
+                if flag == True:
+                    break
+            if flag == True:
+                break
+        
+
+        # Create the input for the update, for the input we have the name, old_public_key and the new_public_key 
+        inputs = { "UPDATE" : { "name" : name, "old_public_key" : old_key, "new_public_key" : new_key } }
+
+        # Create the output for the update 
+        outputs = dict()
+         
+        if flag == True:
+            outputs = { "UPDATE" : { "success" : True, "update" : True, "new_public_key" : new_key } }
+        else:
+            outputs = { "UPDATE" : { "success" : False, "message" : "cannot find the name and old public key" } }
+
+
+        #dumps to JSON
+        inputs = json.dumps(inputs)
+        outputs = json.dumps(outputs)
+
+        '''
+        this means that we found the name and the old_public_key in one of the transactions
+        Goal: need to add a new transaction that will have the same name but with a new public key 
+        '''
+        tx = transaction.Transaction(transaction_type='standard', inputs= inputs, outputs= outputs)
+        #self.send_transaction(tx)
         return tx
 
     def pki_revoke(self, generator_public_key, public_key):
         '''
-
+            Revoke a public key
         '''
-        tx = transaction.Transaction()
 
-        self.send_transaction(tx)
+        # input verification
+        gen = self.verify_public_key(generator_public_key)
+        if not gen:
+            print("The generator public key is incorrectly formatted. Please try again.")
+            return -1
+
+        pub = self.verify_public_key(public_key)
+        if not pub:
+            print("The entered public key is incorrectly formatted. Please try again.")
+            return -1
+
+        inputs = { "REVOKE" : { "public_key" : pub } }
+
+        # Query blockchain, break if we find our public key
+        flag = False
+        for block in reversed(self.blockchain.chain):
+            for tx in block.transactions:
+                inputs = json.loads(tx.inputs)
+                for key in inputs.keys(): # should only be 1 top level key - still O(1)
+                    try:
+                        if public_key == inputs[key]["public_key"]:
+                            flag = True
+                            break
+                    except:
+                        continue
+                if flag == True:
+                    break
+            if flag == True:
+                break
+
+        outputs = dict()
+        if flag == True:
+            outputs = { "REVOKE" : { "success" : True } }
+        else:
+            outputs = { "REVOKE" : { "success" : False, "message" : "Public key not found." } }
+
+        inputs = json.dumps(inputs)
+        outputs = json.dumps(outputs)
+
+        tx = transaction.Transaction(transaction_type="Standard", tx_generator_address=gen,
+                                    inputs=inputs, outputs=outputs)
+
         return tx
 
     @staticmethod
@@ -310,7 +442,7 @@ class Client(object):
 
         # create the key dir if not created
         home_path = expanduser("~")
-        key_path = os.path.join(home_path, ".BlockchainPKI/keys/")
+        key_path = os.path.join(home_path, ".BlockchainPKI","keys")
         if not os.path.exists(key_path):
             print("Directory %s does not exist" % key_path)
             cont = input("Would you like to create %s? (y/n): " % key_path)
@@ -392,6 +524,8 @@ class Client(object):
                 print("Transactional Functions:\n\n ")
                 print("register                         -Register a name and public key on the blockchain.")
                 print("query                            -Query for a public key given a name.\n\n")
+                print("validate                         -verifies whether a pair of (name, public key) is valid or not")
+                print("update                           -Update a user's public key")
                 print("Local Functions:\n\n")
                 print("generate                         -Generate a public and private key pair.")
                 print("encrypt <public_key> <message>   -Encrypt a message with a public key.")
@@ -469,7 +603,7 @@ class Client(object):
         '''
         if self.net:
             self.net.close()
-            
+
 if __name__ == "__main__":
     # Generates private and public key
     ##    private_key, public_key = Client.generate_keys()
@@ -485,7 +619,7 @@ if __name__ == "__main__":
 
     Client1 = Client(name="Client 1")
     Client1._load_other_ca(capath=Client1.validators_capath)
-        
+
     # Update the blockchain
     print("Updating blockchain. This may take a while.")
     Client1.blockchain = Client1.update_blockchain()

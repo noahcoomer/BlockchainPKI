@@ -1,8 +1,4 @@
 from random import randint
-from threading import Thread
-# from Crypto.Signature import PKCS1_v1_5
-# from data import transaction
-import hashlib
 from transaction import Transaction
 from block import Block
 from blockchain import Blockchain
@@ -14,8 +10,8 @@ import errno
 import socket
 import string
 import random
+import hashlib
 import binascii
-import threading
 import pickle
 
 INCONN_THRESH = 128
@@ -249,13 +245,43 @@ class Validator(object):
         except socket.timeout:
             pass
 
-    def add_transaction(self, transaction):
+
+    def add_transaction(self, tx):
         '''
             Receive incoming transactions and add to mempool
         '''
-        if transaction not in self.mempool:
-            transaction.status = "OPEN"
-            self.mempool.append(transaction)
+        transaction = pickle.loads(tx)
+        if transaction.output == 'YES':
+            pass
+        elif transaction.output == 'NO':
+            pass
+        else:
+            transaction = str(pickle.dumps(transaction))
+            if transaction not in self.mempool:
+                self.mempool.append(transaction)
+                
+
+
+    def create_block(self, first, last ):
+        block_tx_pool = []
+
+        for tx in range(first, last):
+            block_tx_pool.append(self.mempool[tx])
+
+        bl = Block(
+            version=0.1,
+            id=len("Blockchain.block_index"),
+            transaction=block_tx_pool,
+            previous_hash="Blockchain.last_block(Blockchain)",
+            block_generator_address=self.address,
+            block_generation_proof=self.cafile,
+            nonce=0, 
+            status="Proposed"
+        )
+
+        return bl
+
+        
 
     def message(self, v, msg):
         '''
@@ -398,13 +424,22 @@ class Validator(object):
         hash_return = hashlib.sha256((h1+h2).encode())
         return hash_return.hexdigest()[::-1]
 
-    def close(self):
+    def verify_txs(self, block, validators):
+        '''
+        params - block - the new generated block sent from block generator
+        '''
+        for tx in block.transactions:
+            if tx not in self.mempool:
+                return False
+        return True
+        
+     def close(self):
         '''
             Closes a Validator and its net. Ignores Validators whose nets are not bound.
         '''
         if self.bound:
             self.net.close()
-
+        
 
 if __name__ == "__main__":
     port = int(input("Enter a port number: "))
