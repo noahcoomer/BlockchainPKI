@@ -49,7 +49,7 @@ class Validator(Node):
 
             :param bytearray data: The certificate file
         '''
-        newfilename = lambda nameLength: ''.join(
+        newfilename = lambda namelength: ''.join(
             choice(ascii_uppercase + ascii_lowercase + digits) for _ in range(namelength))
 
         # Create a random filename of length 15
