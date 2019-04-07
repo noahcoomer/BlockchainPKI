@@ -1,7 +1,8 @@
 import sys
-sys.path.append('../')
 import pickle
 from hashlib import sha256
+
+sys.path.append('../src/')
 from block import Block
 from validator import Validator
 from transaction import Transaction

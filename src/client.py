@@ -14,8 +14,7 @@ import blockchain
 
 
 class Client(object):
-    blockchain = None
-
+    
     def __init__(self, name, addr="0.0.0.0", port=1234, validators_capath="~/.BlockchainPKI/validators/"):
         '''
             Initialize a Client object
@@ -28,7 +27,10 @@ class Client(object):
         self.name = name or socket.getfqdn(socket.gethostname())
         self.address = addr, port
         self.validators_capath = validators_capath
-        self._init_net()
+        self.blockchain = None
+        self.connections = []
+        self._init_net()   
+
 
     def _init_net(self):
         '''
@@ -79,13 +81,34 @@ class Client(object):
             self.context.load_verify_locations(
                 capath=capath or self.validators_capath)
 
+    def create_connections(self):
+        '''
+            Create the connection objects from the validators info file and store them as a triple
+            arr[0] = hostname, arr[1] = ip, int(arr[2]) = port 
+        '''
+        f = open('../validators.txt', 'r')
+        for line in f:
+            arr = line.split(' ')
+            if self.name == arr[0] and self.address == (arr[1], int(arr[2])):
+                continue
+            else:
+                val = validator.Validator(name=arr[0], addr=arr[1], port=int(arr[2]), bind=False)
+                self.connections.append(val)
+        f.close()
+
+    def broadcast_transaction(self, tx):
+        '''
+            Broadcast the creation of a transaction to the network
+        '''
+        for i in self.connections:
+            self.send_transaction(i, tx)
+
     def send_transaction(self, val, tx):
         '''
             Send a transaction to the validator network
 
             :param Transaction tx: The transaction to send
         '''
-        #
         if self.net and self != val:
             # Connect to validators's inbound net using client's outbound net
             address = val.address
@@ -180,10 +203,7 @@ class Client(object):
         tx = transaction.Transaction(transaction_type="Standard", tx_generator_address=gen, inputs=inputs, outputs=outputs)
         # Create an entry point to the validator network that the client can connect to
 
-        ############## UNCOMMENT BEFORE GOING LIVE #################
-        #validator = validator.Validator(Alice = name="Validator", addr="10.228.112.126", port=4321)
-        #self.send_transaction(validator, tx)
-
+        self.broadcast_transaction(tx)
         return tx
 
     def pki_query(self, generator_public_key, name):
@@ -232,9 +252,7 @@ class Client(object):
         tx = transaction.Transaction(transaction_type="Standard", tx_generator_address=gen,
                                     inputs=inputs, outputs=outputs)
 
-        ####### UNCOMMENT BEFORE PRODUCTION ########
-        #self.send_transaction(tx)
-
+        self.broadcast_transaction(tx)
         return tx
 
     def pki_validate(self, generator_public_key, name, public_key):
@@ -395,11 +413,8 @@ class Client(object):
         '''
             Generate public and private keys using RSA key generation
         '''
-        # Specify the IP size of the key modulus
-        modulus_length = 256 * 8
-        # Using a Random Number Generator and the modulus length as parameters
         # For the RSA key generation, create your private key
-        private_key = RSA.generate(modulus_length, Random.new().read)
+        private_key = RSA.generate(2048)
 
         # create the key dir if not created
         home_path = expanduser("~")

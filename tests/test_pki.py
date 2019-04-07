@@ -39,6 +39,7 @@ TEST_KEY_PATH = "/Users/noahcoomer/.BlockchainPKI/keys/public.pem"
 
 
 
+
 def register_transaction(name):
     _client = client.Client(name="test_client")
     _client.blockchain = create_test_chain()
