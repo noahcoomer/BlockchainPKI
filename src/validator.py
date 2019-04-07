@@ -30,7 +30,11 @@ class Validator(Node):
         '''
         super().__init__(hostname=hostname, addr=addr, port=port, bind=bind, capath=capath)
 
+        # Buffer to store incoming transactions
         self.mempool = list()
+
+        # Buffer to store connection objects
+        self.connections = list()
 
         self.certfile = certfile.replace('~', os.environ['HOME'])
         self.keyfile = keyfile.replace('~', os.environ['HOME'])
@@ -45,7 +49,7 @@ class Validator(Node):
 
             :param bytearray data: The certificate file
         '''
-        def newfilename(namelength): return ''.join(
+        newfilename = lambda nameLength: ''.join(
             choice(ascii_uppercase + ascii_lowercase + digits) for _ in range(namelength))
 
         # Create a random filename of length 15
@@ -73,9 +77,14 @@ class Validator(Node):
 
     def broadcast(self, tx):
         '''
-            Broadcasts a transaction to connections
+            Broadcast a message to every other validator that is connected to this node
         '''
-        pass
+        i = 0
+        for addr in self.connections:
+            ip, port = addr
+            name = "val-" + str(i)
+            receiver = Validator(name=name, addr=ip, port=port)
+            self.message(receiver, message)
 
     def receive(self, mode='secure'):
         '''
@@ -171,17 +180,16 @@ class Validator(Node):
         block_tx_pool = []
         for tx in range(first, last):
             block_tx_pool.append(self.mempool[tx])
-        bl = Block(
+        return Block(
             version=0.1,
             id=len("Blockchain.block_index"),
-            transaction=block_tx_pool,
+            transactions=block_tx_pool,
             previous_hash="Blockchain.last_block(Blockchain)",
             block_generator_address=self.address,
             block_generation_proof=self.certfile,
             nonce=0,
             status="Proposed"
         )
-        return bl
 
     def message(self, v, msg):
         '''
@@ -296,7 +304,9 @@ class Validator(Node):
 
     def verify_txs(self, block, validators):
         '''
-        params - block - the new generated block sent from block generator
+            Verify transactions 
+
+            param: Block block: the new generated block sent from block generator
         '''
         for tx in block.transactions:
             if tx not in self.mempool:
@@ -307,7 +317,7 @@ class Validator(Node):
 if __name__ == "__main__":
     port = int(input("Enter a port number: "))
     val = Validator(port=port)
-    val2 = Validator(port=port + 1)
+    val2 = Validator(port=port+1)
     # val.create_connections()
     # val.update_blockchain()
 
