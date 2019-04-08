@@ -270,12 +270,17 @@ class Client(Node):
             Returns the transaction with the new public key
         '''
         # verify the old_public_key
-        old_key = self.verify_public_key(old_public_key)
+        gen = self.verify_public_key(open(generator_public_key, 'r'))
+        if not gen:
+            print("The generator public key is not formatted correctly.")
+            return -1
+
+        old_key = self.verify_public_key(open(old_public_key, 'r'))
         if not old_key:
-            print('this old public key is not formatted correctly')
+            print('This old public key is not formatted correctly')
             return -1
         # verify the new_public_key
-        new_key = self.verify_public_key(new_public_key)
+        new_key = self.verify_public_key(open(new_public_key, 'r'))
         if not new_key:
             print('This new public key is not formatted correctly')
             return -1
@@ -286,7 +291,7 @@ class Client(Node):
                 inputs = json.loads(tx.inputs)
                 for key in inputs.keys():
                     try:
-                        if name == inputs[key]['name'] and old_public_key == inputs[key]['public_key']:
+                        if name == inputs[key]['name'] and old_key == inputs[key]['public_key']:
                             flag = True
                     except:
                         continue
@@ -311,7 +316,7 @@ class Client(Node):
         inputs = json.dumps(inputs)
         outputs = json.dumps(outputs)
         tx = Transaction(
-            transaction_type='standard', inputs=inputs, outputs=outputs)
+            transaction_type='Standard', tx_generator_address=gen, inputs=inputs, outputs=outputs)
         return tx
 
     def pki_revoke(self, generator_public_key, public_key):
@@ -343,10 +348,10 @@ class Client(Node):
         flag = False
         for block in reversed(self.blockchain.chain):
             for tx in block.transactions:
-                inputs = json.loads(tx.inputs)
-                for key in inputs.keys():  # should only be 1 top level key - still O(1)
+                inps = json.loads(tx.inputs)
+                for key in inps.keys():  # should only be 1 top level key - still O(1)
                     try:
-                        if public_key == inputs[key]["public_key"]:
+                        if pub == inps[key]["public_key"]:
                             flag = True
                             break
                     except:
