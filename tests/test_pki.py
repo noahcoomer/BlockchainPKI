@@ -35,11 +35,11 @@ TEST_KEY_3 = """-----BEGIN PUBLIC KEY-----
              """
 
 
-test_key_path = open("C:/Users/ryant/.BlockchainPKI/keys/public.pem","r")
+#test_key_path = open("C:/Users/ryant/.BlockchainPKI/keys/public.pem","r")
 TEST_KEY_PATH = "/Users/noahcoomer/.BlockchainPKI/keys/public.pem"
 
 def register_transaction(name):
-    _client = Client(name="test_client")
+    _client = Client()
     _client.blockchain = create_test_chain()
     tx = _client.pki_register(TEST_KEY_PATH, name, TEST_KEY_PATH)
     try:
@@ -61,19 +61,19 @@ def query_transaction(query):
         return tx
 
 def create_test_chain():
-    chain = blockchain.Blockchain()
+    chain = Blockchain()
 
     inp_1 = {"REGISTER": {"name": "noah_coomer", "public_key": TEST_KEY_1}}
     inp_1 = json.dumps(inp_1)
-    tx_1 = transaction.Transaction(inputs=inp_1)
+    tx_1 = Transaction(inputs=inp_1)
 
     inp_2 = {"REGISTER": {"name": "lebron_james", "public_key": TEST_KEY_2}}
     inp_2 = json.dumps(inp_2)
-    tx_2 = transaction.Transaction(inputs=inp_2)
+    tx_2 = Transaction(inputs=inp_2)
 
     inp_3 = {"REGISTER": {"name": "ben_simmons", "public_key": TEST_KEY_3}}
     inp_3 = json.dumps(inp_3)
-    tx_3 = transaction.Transaction(inputs=inp_3)
+    tx_3 = Transaction(inputs=inp_3)
 
     txs = [tx_1, tx_2, tx_3]
     new_block = Block(

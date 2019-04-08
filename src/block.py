@@ -85,7 +85,7 @@ class Block:
         return hash_return.hexdigest()[::-1]
 
     def compute_hash(self):
-        block_info = str(self)
+        block_info = str(pickle.dumps(self))
         hash_256 = sha256(block_info.encode()).hexdigest()
         return hash_256
 
@@ -93,5 +93,9 @@ class Block:
         return self.compute_hash() == other.compute_hash()
 
     def __str__(self):
-        bit_str = str(pickle.dumps(self))
-        return bit_str
+        s = "<Block: "
+        for attr, value in self.__dict__.items():
+            s += "%s=%s, " % (attr, value or "None")
+        s = s[:-2].strip()
+        s += ">"
+        return s
