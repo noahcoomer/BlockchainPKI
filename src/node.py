@@ -59,6 +59,8 @@ class Node(ABC):
         finally:
             # Create a context for encrypting/decrypting network connections
             self.context = ssl.create_default_context()
+            self.context.check_hostname = False
+            self.load_other_ca()
 
     @abstractmethod
     def message(self):
@@ -87,7 +89,7 @@ class Node(ABC):
             cafiles = [path for path in os.listdir(
                 capath) if path.endswith('.pem')]
             for path in cafiles:
-                abspath = os.path.join(cafiles, path)
+                abspath = os.path.join(capath, path)
                 self.context.load_verify_locations(abspath)
 
     def close(self):

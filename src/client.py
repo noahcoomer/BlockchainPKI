@@ -24,9 +24,9 @@ class Client(Node):
         self.blockchain = None
         self.connections = list()
 
-    def message(self):
+    def message(self, t):
         '''
-            Send messages
+            Send a Transaction to the validator network
         '''
         pass
 
@@ -52,12 +52,40 @@ class Client(Node):
                 self.connections.append(v)
         f.close()
 
+    def send_transaction(self, val, tx):
+        '''
+            Send a transaction to the validator network
+            :param Transaction tx: The transaction to send
+        '''
+        if self.net and self != val:
+            # Connect to validators's inbound net using client's outbound net
+            address = val.address
+            # Serialize the transaction as a bytes object
+            txn = pickle.dumps(tx)
+            # Create a new socket (the outbound net)
+            print("Attempting to send to %s:%s" % val.address)
+            with self.context.wrap_socket(socket.socket(socket.AF_INET, socket.SOCK_STREAM), server_hostname=val.hostname) as s:
+                try:
+                    # Connect to the validator
+                    s.connect(address)
+                    # Send the entirety of the message
+                    s.sendall(txn)
+                except OSError as e:
+                    # Except cases for if the send fails
+                    if e.errno == errno.ECONNREFUSED:
+                        print(e)
+                        # return -1, e
+                except socket.error as e:
+                    print(e)
+        else:
+            raise Exception("The validator must be initialized and listening for connections")
+
     def broadcast_transaction(self, tx):
         '''
             Broadcast the creation of a transaction to the network
         '''
         for i in self.connections:
-            self.message(i, tx)
+            self.send_transaction(i, tx)
             
     def update_blockchain(self):
         '''

@@ -174,9 +174,9 @@ class Validator(Node):
                       (addr[0], addr[1], decoded_message))
                 if type(decoded_message) == Transaction:
                     # Add transaction to the pool
-                    self.add_transaction(data)
+                    self.add_transaction(decoded_message)
                     # broadcast to network
-                    self.broadcast(data)
+                    self.broadcast(decoded_message)
                     end_time = int(time.time())
 
                     # Probably need to add a leader flag here

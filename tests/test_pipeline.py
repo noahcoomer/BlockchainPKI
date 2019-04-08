@@ -17,7 +17,7 @@ def val_thread(port):
         val.receive()
 
 def client_thread():
-    cli = Client(hostname="Client 1")
+    cli = Client()
     cli.create_connections()
     for i in range(5):
         tx = Transaction(transaction_type='Standard', inputs=str(i))
