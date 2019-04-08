@@ -87,11 +87,13 @@ class Validator(Node):
             probably bound to listen for all connections (addr="0.0.0.0").
             msg must be an instance of str or bytes.
         '''
-        if self.net and self != v:
+        if self.net:
             # Connect to v's inbound net using self's outbound net
             address = v.address
             if isinstance(msg, str):
                 msg = msg.encode()  # encode the msg to binary
+            elif isinstance(msg, Transaction):
+                msg = pickle.dumps(Transaction)
             print("Attempting to send to %s:%s" % v.address)
             secure_conn = self.context.wrap_socket(
                 socket.socket(socket.AF_INET, socket.SOCK_STREAM), server_hostname=v.hostname)
@@ -169,9 +171,14 @@ class Validator(Node):
                     return
                 
                 # Deserialize the entire object when data reception has ended
-                decoded_message = pickle.loads(DATA)
-                print("Received data from %s:%d: %s" %
+                try: 
+                    decoded_message = pickle.loads(DATA)
+                    print("Received data from %s:%d: %s" %
                       (addr[0], addr[1], decoded_message))
+                except KeyError as e:
+                    print(e)
+                    decoded_message = DATA
+                
                 if type(decoded_message) == Transaction:
                     # Add transaction to the pool
                     self.add_transaction(decoded_message)
@@ -189,11 +196,11 @@ class Validator(Node):
                         start_time = int(time.time())
                         last = None
                         self.create_block(self.mempool[:10], last)
-                elif type(data) == Block:
+                elif type(decoded_message) == Block:
                     print("Call verification/consensus function to vote on Block")
                 else:
                     print("Data received was not of type Transaction or Block, but of type %s: \n%s\n" % (
-                        type(data), data))
+                        type(decoded_message), decoded_message))
         except socket.timeout:
             pass
 
@@ -260,11 +267,18 @@ class Validator(Node):
 if __name__ == "__main__":
     port = int(input("Enter a port number: "))
     val = Validator(hostname="localhost", port=port)
-    val2 = Validator(hostname="localhost", port=port+1)
+
+    marshal = Validator(hostname="marshalhayes.freeddns.org", port=8080, bind=False)
 
     try:
         while True:
-            val.receive('insecure')
-            val2.send_certificate(addr=val.address[0], port=val.address[1])
+            # Sending plaintext (raw binary)
+            val.message(marshal, "hello, this is val!")
+            time.sleep(1)
+
+            # Sending a Transaction
+            t = Transaction()
+            val.message(marshal, t)
+            time.sleep(1)
     except KeyboardInterrupt:
         val.close()

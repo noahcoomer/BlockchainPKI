@@ -22,14 +22,15 @@ class Node(ABC):
             :param bool bind: Whether or not to bind a socket
             :param str capath: The path to the Validators CAs
         '''
-        self.address = (addr, port)
         self.capath = capath.replace('~', os.environ['HOME'])
 
         if not bind:
             assert hostname != None, "Hostname must be specified when not binding"
             self.hostname = hostname
+            self.address = (socket.gethostbyname(self.hostname), 8080)
         else:
             self.hostname = hostname or socket.getfqdn(socket.gethostname())
+            self.address = (addr, port)
             self._init_net()
 
     def _init_net(self):
