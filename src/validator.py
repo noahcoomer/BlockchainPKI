@@ -171,36 +171,32 @@ class Validator(Node):
                     return
                 
                 # Deserialize the entire object when data reception has ended
-                try: 
-                    decoded_message = pickle.loads(DATA)
-                    print("Received data from %s:%d: %s" %
-                      (addr[0], addr[1], decoded_message))
-                except KeyError as e:
-                    print(e)
-                    decoded_message = DATA
-                
-                if type(decoded_message) == Transaction:
+                                # Deserialize the entire object when data reception has ended
+                try:
+                    data = pickle.loads(DATA)
+                except pickle.UnpicklingError:
+                    # The data received most likely wasn't a Transaction
+                    data = DATA.decode()
+
+                if type(data) == Transaction:
                     # Add transaction to the pool
-                    self.add_transaction(decoded_message)
+                    self.add_transaction(data)
                     # broadcast to network
-                    self.broadcast(decoded_message)
+                    self.broadcast(data)
                     end_time = int(time.time())
 
                     # Probably need to add a leader flag here
                     if (end_time - start_time) >= 10:
                         start_time = int(time.time())
-                        last = None
                         print("Call Round Robin to chose the leader")
-                        self.create_block(self.mempool, last)
+                        self.create_block(self.mempool)
                     elif len(self.mempool) >= 10:
                         start_time = int(time.time())
-                        last = None
-                        self.create_block(self.mempool[:10], last)
-                elif type(decoded_message) == Block:
+                        self.create_block(self.mempool[:10])
+                elif type(data) == Block:
                     print("Call verification/consensus function to vote on Block")
                 else:
-                    print("Data received was not of type Transaction or Block, but of type %s: \n%s\n" % (
-                        type(decoded_message), decoded_message))
+                    print("Data received was not of type Transaction or Block, but of type %s: \n%s\n" % (type(data), data))
         except socket.timeout:
             pass
 
