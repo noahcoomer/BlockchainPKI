@@ -221,16 +221,27 @@ class Validator(Node):
             nonce=0,
             status="Proposed"
         )
-
+    
     def send_certificate(self, addr, port):
         '''
-            Sends the certificate to addr:port through
+            Sends the certificate to addr:port through 
             standard, unencrypted TCP
 
             :param str addr: the ipv4 address to send to
             :param int port: the port number to send to
         '''
-        pass
+        certfile = open(self.certfile, 'rb').read()
+        print("Read certfile. Attempting to send to %s:%d" % (addr, port))
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            try:
+                s.connect((addr, port))
+                # Alert receiver that you want to send a certificate
+                s.send(b'/cert')
+                s.sendall(certfile)  # Send the certificate
+            except OSError as e:
+                print(e)
+            except socket.timeout as e:
+                print(e)
 
     def verify_txs(self, block, validators):
         '''
