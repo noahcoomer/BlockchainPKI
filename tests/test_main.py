@@ -1,8 +1,8 @@
 import sys
-sys.path.append('../')
-from src import transaction
-from src import blockchain
-from src import block
+sys.path.append('../src')
+import transaction
+import blockchain
+import block
 #import pytest
 from hashlib import sha256
 import json
