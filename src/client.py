@@ -203,7 +203,7 @@ class Client(object):
         tx = transaction.Transaction(transaction_type="Standard", tx_generator_address=gen, inputs=inputs, outputs=outputs)
         # Create an entry point to the validator network that the client can connect to
 
-        self.broadcast_transaction(tx)
+        #self.broadcast_transaction(tx)
         return tx
 
     def pki_query(self, generator_public_key, name):
@@ -252,7 +252,7 @@ class Client(object):
         tx = transaction.Transaction(transaction_type="Standard", tx_generator_address=gen,
                                     inputs=inputs, outputs=outputs)
 
-        self.broadcast_transaction(tx)
+        #self.broadcast_transaction(tx)
         return tx
 
     def pki_validate(self, generator_public_key, name, public_key):
@@ -516,6 +516,7 @@ class Client(object):
                 reg_pub_key_path = input("Enter the path of the public key you would like to register: ")
                 reg_pub_key = open(reg_pub_key_path, 'r')
                 tx = self.pki_register(client_pub_key, name, reg_pub_key)
+                self.broadcast_transaction(tx)
                 print("\nInputs: ", json.loads(tx.inputs))
                 print("\nOutputs: ", json.loads(tx.outputs))
             elif command[0] == 'query':
@@ -523,6 +524,7 @@ class Client(object):
                 client_pub_key = open(client_pub_key_path, 'r')
                 name = input("Enter the name you would like to query for: ")
                 tx = self.pki_query(client_pub_key, name)
+                self.broadcast_transaction(tx)
                 print("\nInputs: ", json.loads(tx.inputs))
                 print("\nOutputs: ", json.loads(tx.outputs))
             elif command[0] == 'validate':
@@ -532,6 +534,7 @@ class Client(object):
                 val_pub_key_path = input("Enter the path of the public key you would like to validate: ")
                 val_pub_key = open(val_pub_key_path, 'r')
                 tx = self.pki_validate(client_pub_key, name, val_pub_key)
+                self.broadcast_transaction(tx)
                 print("\nInputs: ", json.loads(tx.inputs))
                 print("\nOutputs: ", json.loads(tx.outputs))
             elif command[0] == 'update':
@@ -544,6 +547,8 @@ class Client(object):
                 new_pub_key = open(new_pub_key_path, 'r')
                 tx = self.pki_update(client_pub_key, name, old_pub_key, new_pub_key)
                 tx_2 = self.pki_revoke(client_pub_key, old_pub_key)
+                self.broadcast_transaction(tx)
+                self.broadcast_transaction(tx_2)
                 print("Generated two transactions: ")
                 print("\nUPDATE:")
                 print("\nInputs: ", json.loads(tx.inputs))
@@ -557,6 +562,7 @@ class Client(object):
                 old_pub_key_path = input("Enter the path of the public key you would like to revoke: ")
                 old_pub_key = open(old_pub_key_path, 'r')
                 tx = self.pki_revoke(client_pub_key, old_pub_key)
+                self.broadcast_transaction(tx)
                 print("\nInputs: ", json.loads(tx.inputs))
                 print("\nOutputs: ", json.loads(tx.outputs))
             elif command[0] == 'generate':
