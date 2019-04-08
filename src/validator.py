@@ -32,7 +32,7 @@ class Validator(Node):
 
         # Buffer to store incoming transactions
         self.mempool = list()
-
+        self.blockchain = list()
         # Buffer to store connection objects
         self.connections = list()
 
@@ -75,6 +75,38 @@ class Validator(Node):
         self.load_other_ca(self.capath)
         print("Reloaded Validator CAs")
 
+    def message(self, v, msg):
+        '''
+            Send a message to another Validator
+            :param Validator v: receiver of the message
+            :param msg: the message to send
+            v's net should be initialized and listening for incoming connections,
+            probably bound to listen for all connections (addr="0.0.0.0").
+            msg must be an instance of str or bytes.
+        '''
+        if self.net and self != v:
+            # Connect to v's inbound net using self's outbound net
+            address = v.address
+            if isinstance(msg, str):
+                msg = msg.encode()  # encode the msg to binary
+            print("Attempting to send to %s:%s" % v.address)
+            secure_conn = self.context.wrap_socket(
+                socket.socket(socket.AF_INET, socket.SOCK_STREAM), server_hostname=v.hostname)
+            try:
+                secure_conn.connect(address)  # Connect to v
+                # Send the entirety of the message
+                secure_conn.sendall(msg)
+            except OSError as e:
+                # Except cases for if the send fails
+                if e.errno == errno.ECONNREFUSED:
+                    print(e)
+            except socket.error as e:
+                print(e)
+            finally:
+                secure_conn.close()
+        else:
+            raise Exception("The net must be initialized and listening for connections")
+
     def broadcast(self, tx):
         '''
             Broadcast a message to every other validator that is connected to this node
@@ -83,8 +115,8 @@ class Validator(Node):
         for addr in self.connections:
             ip, port = addr
             name = "val-" + str(i)
-            receiver = Validator(name=name, addr=ip, port=port)
-            self.message(receiver, message)
+            receiver = Validator(hostname=name, addr=ip, port=port)
+            self.message(receiver, tx)
 
     def receive(self, mode='secure'):
         '''
@@ -131,14 +163,13 @@ class Validator(Node):
                     # Validator sent their certificate
                     DATA = DATA[5:]  # Remove flag
                     self.save_new_certfile(data=DATA)
+                    return
+                
                 # Deserialize the entire object when data reception has ended
-                try:
-                    data = pickle.loads(DATA)
-                except pickle.UnpicklingError:
-                    # The data received most likely wasn't a Transaction
-                    data = DATA.decode()
-
-                if type(data) == Transaction:
+                decoded_message = pickle.loads(DATA)
+                print("Received data from %s:%d: %s" %
+                      (addr[0], addr[1], decoded_message))
+                if type(decoded_message) == Transaction:
                     # Add transaction to the pool
                     self.add_transaction(data)
                     # broadcast to network
@@ -148,17 +179,18 @@ class Validator(Node):
                     # Probably need to add a leader flag here
                     if (end_time - start_time) >= 10:
                         start_time = int(time.time())
+                        last = None
                         print("Call Round Robin to chose the leader")
-                        self.create_block(self.mempool)
+                        self.create_block(self.mempool, last)
                     elif len(self.mempool) >= 10:
                         start_time = int(time.time())
-                        self.create_block(self.mempool[:10])
+                        last = None
+                        self.create_block(self.mempool[:10], last)
                 elif type(data) == Block:
                     print("Call verification/consensus function to vote on Block")
                 else:
                     print("Data received was not of type Transaction or Block, but of type %s: \n%s\n" % (
                         type(data), data))
-                # return decoded_transaction
         except socket.timeout:
             pass
 
@@ -166,15 +198,14 @@ class Validator(Node):
         '''
             Receive incoming transactions and add to mempool
         '''
-        transaction = pickle.loads(tx)
-        if transaction.output == 'YES':
+        if tx.status == 'YES':
             pass
-        elif transaction.output == 'NO':
+        elif tx.status == 'NO':
             pass
         else:
-            transaction = str(pickle.dumps(transaction))
-            if transaction not in self.mempool:
-                self.mempool.append(transaction)
+            if tx not in self.mempool:
+                tx.status = "Open"
+                self.mempool.append(tx)
 
     def create_block(self, first, last):
         block_tx_pool = []
@@ -184,47 +215,12 @@ class Validator(Node):
             version=0.1,
             id=len("Blockchain.block_index"),
             transactions=block_tx_pool,
-            previous_hash="Blockchain.last_block(Blockchain)",
+            previous_hash=self.blockchain.last_block.hash,
             block_generator_address=self.address,
             block_generation_proof=self.certfile,
             nonce=0,
             status="Proposed"
         )
-
-    def message(self, v, msg):
-        '''
-            Send a message to another Validator
-
-            :param Validator v: receiver of the message
-            :param msg: the message to send
-
-            v's net should be initialized and listening for incoming connections,
-            probably bound to listen for all connections (addr="0.0.0.0").
-            msg must be an instance of str or bytes.
-        '''
-        if self.net and self != v:
-            # Connect to v's inbound net using self's outbound net
-            address = v.address
-            if isinstance(msg, str):
-                msg = msg.encode()  # encode the msg to binary
-            print("Attempting to send to %s:%s" % v.address)
-            secure_conn = self.context.wrap_socket(
-                socket.socket(socket.AF_INET, socket.SOCK_STREAM), server_hostname=v.name)
-            try:
-                secure_conn.connect(address)  # Connect to v
-                # Send the entirety of the message
-                secure_conn.sendall(msg)
-            except OSError as e:
-                # Except cases for if the send fails
-                if e.errno == errno.ECONNREFUSED:
-                    print(e)
-            except socket.error as e:
-                print(e)
-            finally:
-                secure_conn.close()
-        else:
-            raise Exception(
-                "The net must be initialized and listening for connections")
 
     def send_certificate(self, addr, port):
         '''
@@ -234,73 +230,7 @@ class Validator(Node):
             :param str addr: the ipv4 address to send to
             :param int port: the port number to send to
         '''
-        certfile = open(self.certfile, 'rb').read()
-        print("Read cafile. Attempting to send to %s:%d" % (addr, port))
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-            try:
-                s.connect((addr, port))
-                # Alert receiver that you want to send a certificate
-                s.send(b'/cert')
-                s.sendall(certfile)  # Send the certificate
-            except OSError as e:
-                print(e)
-            except socket.timeout as e:
-                print(e)
-
-    def verify_txs_from_merkel_root(self, merkel_root, first, last, validators):
-        '''
-            Verifies transactions from merkel root
-
-            param: merkel_root: the merkel root created by the block generator from the new block
-            param: first: the position of the transaction in the mempool, but in the new block, it is considered the first transaction
-            param: last: the position of the transaction in the mempool, but in the new block, it is considered the last transaction
-            param: validators: list of validators
-        '''
-        transactions = []
-        for i in range(first, last + 1):
-            transactions.append(self.mempool[i])
-
-        sha256_txs = self.hash_tx(transactions)
-        calculated_merkle_root = self.compute_merkle_root(sha256_txs)
-
-    def hash_tx(self, transaction):
-        '''
-            Returns a list of hashed transactions
-        '''
-        sha256_txs = []
-        # A hash of the root of the Merkel tree of this block's transactions.
-        for tx in transaction:
-            tx_hash = tx.compute_hash()
-            sha256_txs.append(tx_hash)
-        return sha256_txs
-
-    def compute_merkle_root(self, transactions):
-        # If the length of the list is 1 then return the final hash
-        if len(transactions) == 1:
-            return transactions[0]
-
-        new_tx_hashes = []
-        for tx_id in range(0, len(transactions) - 1, 2):
-            tx_hash = self.hash_2_txs(
-                transactions[tx_id], transactions[tx_id + 1])
-            new_tx_hashes.append(tx_hash)
-
-        # if the number of transactions is odd then hash the last item twice
-        if len(transactions % 2 == 1):
-            tx_hash = self.hash_2_txs(transactions[-1], transactions[-1])
-            new_tx_hashes.append(tx_hash)
-
-        return self.compute_merkle_root(new_tx_hashes)
-
-    def hash_2_txs(self, hash1, hash2):
-        '''
-            Returns the hash of two hashes
-        '''
-        # Reverse inputs before and after hashing because of the big-edian and little-endian problem
-        h1 = hash1.hexdigest()[::-1]
-        h2 = hash2.hexdigest()[::-1]
-        hash_return = hashlib.sha256((h1 + h2).encode())
-        return hash_return.hexdigest()[::-1]
+        pass
 
     def verify_txs(self, block, validators):
         '''
@@ -312,14 +242,11 @@ class Validator(Node):
             if tx not in self.mempool:
                 return False
         return True
-
-
+        
 if __name__ == "__main__":
     port = int(input("Enter a port number: "))
-    val = Validator(port=port)
-    val2 = Validator(port=port+1)
-    # val.create_connections()
-    # val.update_blockchain()
+    val = Validator(hostname="localhost", port=port)
+    val2 = Validator(hostname="localhost", port=port+1)
 
     try:
         while True:

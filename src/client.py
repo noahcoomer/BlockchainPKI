@@ -24,6 +24,12 @@ class Client(Node):
         self.blockchain = None
         self.connections = list()
 
+    def receive(self):
+        '''
+            Receive incoming connections
+        '''
+        pass
+
     def create_connections(self):
         '''
             Create the connection objects from the validators info file and store them as a triple
@@ -46,39 +52,7 @@ class Client(Node):
         '''
         for i in self.connections:
             self.message(i, tx)
-
-    def message(self, v, tx):
-        '''
-            Sends a Transaction to a Validator
-
-            :param Validator v: The validator to send to
-            :param Transaction tx: The transaction to send
-        '''
-        if type(v) != Validator:
-            raise TypeError("v must be of type Validator, not %s" % type(v))
-        elif type(tx) != Transaction:
-            raise TypeError(
-                "tx must be of type Transaction, not %s" % type(tx))
-       if self.net:
-            address = v.address
-            txn = pickle.dumps(tx)  # Serialize the transaction
-
-            print("Attempting to send to %s:%s" % v.address)
-            secure_conn = self.context.wrap_socket(
-                socket.socket(socket.AF_INET, socket.SOCK_STREAM), server_hostname=v.hostname)
-            try:
-                secure_conn.connect(address)  # Connect to the validator
-                secure_conn.sendall(txn)  # Send the transaction
-            except OSError as e:
-                if e.errno == errno.ECONNREFUSED:
-                    print(e)
-            except socket.error as e:
-                print(e)
-            finally:
-                secure_conn.close()
-        else:
-            raise Exception("Net must be initialized before calling message")
-
+            
     def update_blockchain(self):
         '''
             Update blockchain to be current
@@ -140,8 +114,9 @@ class Client(Node):
         outputs = json.dumps(outputs)
 
         # send the transaction and return it for std.out
-        tx = Transaction(
-            transaction_type="Standard", tx_generator_address=gen, inputs=inputs, outputs=outputs)
+        tx = Transaction(transaction_type="Standard", tx_generator_address=gen, inputs=inputs, outputs=outputs)
+        # Create an entry point to the validator network that the client can connect to
+        self.broadcast_transaction(tx)
         return tx
 
     def pki_query(self, generator_public_key, name):
@@ -180,8 +155,10 @@ class Client(Node):
 
         inputs = json.dumps(inputs)
         outputs = json.dumps(outputs)
+
         tx = Transaction(transaction_type="Standard", tx_generator_address=gen,
-                                     inputs=inputs, outputs=outputs)
+                                    inputs=inputs, outputs=outputs)
+        self.broadcast_transaction(tx)
         return tx
 
     def pki_validate(self, generator_public_key, name, public_key):
@@ -228,7 +205,6 @@ class Client(Node):
             Updates the public key with the new public key
             Returns the transaction with the new public key
         '''
-
         # verify the old_public_key
         old_key = self.verify_public_key(old_public_key)
         if not old_key:
@@ -478,9 +454,3 @@ class Client(Node):
             return key.decode()
         except ValueError:
             return None
-
-    def receive(self):
-        '''
-            Receive incoming connections
-        '''
-        pass

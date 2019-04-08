@@ -13,7 +13,7 @@ class Block:
 
         # A version number to track software protocol upgrades
         self.version = version
-        self.id = id                   # Block index or block height
+        self.id = id # Block index or block height
         # Transaction pool created by validator calling add_transaction() method
         self.transactions = transactions
         # Transaction pool with hashed transactions
@@ -33,18 +33,12 @@ class Block:
         self.status = status
         # Total number of transaction included in this block => This will be used to verify the transaction from merkel root
         self.t_counter = len(self.transactions)
-        # Creation time of this block
-        self.timestamp = int(time.time())
-        # The hash of the block header
-        self.hash = self.compute_hash()
-
-    # Hash all transactions in the list. Pass a list of hashed transactions to
-    # compute_merkle_root(list) method to calculate the merkel root from the list of transactions
-
+        self.timestamp = int(time.time()) # Creation time of this block
+        self.hash = self.compute_hash() # The hash of the block header
+        
     def merkle_root_hash(self, transactions):
         '''
-        params: tranaction - list of raw transaction
-
+            param list: transactions: list of raw transaction
         '''
         for tx in transactions:
             tx_hash = sha256(tx.encode()).hexdigest()
@@ -69,8 +63,6 @@ class Block:
             return transactions[0]
 
         new_tx_hashes = []
-
-        # for(t_id = 0, t_id < len(transactions) - 1, t_id = t_id + 2)
         for tx_id in range(0, len(transactions) - 1, 2):
 
             tx_hash = self.hash_2_txs(
@@ -83,8 +75,6 @@ class Block:
             new_tx_hashes.append(tx_hash)
 
         return self.compute_merkle_root(new_tx_hashes)
-
-    # Hash two hashes together -> return 1 final hash
 
     def hash_2_txs(self, hash1, hash2):
         # Reverse inputs before and after hashing because of the big-edian and little-endian problem
@@ -100,7 +90,7 @@ class Block:
         return hash_256
 
     def __eq__(self, other):
-        return hash(self) == hash(other)
+        return self.compute_hash() == other.compute_hash()
 
     def __str__(self):
         bit_str = str(pickle.dumps(self))

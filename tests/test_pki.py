@@ -5,8 +5,10 @@ from os.path import expanduser
 
 import sys
 sys.path.append('../src/')
-import blockchain, block, transaction
-import client
+from block import Block
+from client import Client
+from blockchain import Blockchain
+from transaction import Transaction
 
 TEST_KEY_1 = """-----BEGIN PUBLIC KEY-----
                 MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDQYD1K9cQt+FLYL4WsiiuDhsE6
@@ -34,42 +36,29 @@ TEST_KEY_3 = """-----BEGIN PUBLIC KEY-----
 
 
 test_key_path = open("C:/Users/ryant/.BlockchainPKI/keys/public.pem","r")
-
 TEST_KEY_PATH = "/Users/noahcoomer/.BlockchainPKI/keys/public.pem"
 
-
-
 def register_transaction(name):
-    _client = client.Client(name="test_client")
+    _client = Client(name="test_client")
     _client.blockchain = create_test_chain()
-    # print(_client.blockchain.last_block.transactions)
-
     tx = _client.pki_register(TEST_KEY_PATH, name, TEST_KEY_PATH)
-
     try:
         if tx == -1:
             print("Exited with error.")
             return
     except:
-        # print_transaction_info(tx)
         return tx
-
 
 def query_transaction(query):
-    _client = client.Client(name="test_client")
+    _client = Client(name="test_client")
     _client.blockchain = create_test_chain()
-    # print(_client.blockchain.last_block.transactions)
-
     tx = _client.pki_query(TEST_KEY_PATH, query)
-
     try:
         if tx == -1:
             print("Exited with error.")
             return
     except:
-        # print_transaction_info(tx)
         return tx
-
 
 def create_test_chain():
     chain = blockchain.Blockchain()
@@ -87,14 +76,13 @@ def create_test_chain():
     tx_3 = transaction.Transaction(inputs=inp_3)
 
     txs = [tx_1, tx_2, tx_3]
-    new_block = block.Block(
+    new_block = Block(
         transactions=txs, previous_hash=chain.last_block.hash)
     success = chain.add_block(new_block, new_block.hash)
     if success:
         return chain
     else:
         print("Error")
-
 
 def print_transaction_info(tx):
     print("Transaction Info")
@@ -107,7 +95,6 @@ def print_transaction_info(tx):
     print("Lock time: ", tx.lock_time)
     print("Timestamp: ", tx.time_stamp)
     print()
-
 
 def main():
     print("Registration transaction tests:\n\n")
@@ -129,7 +116,6 @@ def main():
     tx_query_fail = query_transaction("noah")
     status_dict = json.loads(tx_query_fail.outputs)
     assert(status_dict["QUERY"]["success"]) == False
-
 
 if __name__ == '__main__':
     main()

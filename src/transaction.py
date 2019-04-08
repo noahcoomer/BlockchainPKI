@@ -1,21 +1,9 @@
-
-import pickle
-import hashlib
-import time
-"""
-This is the setup for our transaction which contains version, transaction_id, transaction_type, tx_generator_address, inputs, outputs, lock_time, time_stamp, username, public_key, and proof
-
-"""
-
 import time
 import hashlib
 import pickle
 
 
 class Transaction:
-
-    # constructor that set up the fields of the transaction
-
     def __init__(self, version=0.1, transaction_type=None, tx_generator_address=None,
                  inputs=None, outputs=None, lock_time=None):
         self.version = version  # specifies which rules this transaction follows
@@ -29,9 +17,6 @@ class Transaction:
         self.lock_time = lock_time
         self.time_stamp = int(time.time())  # transaction generation time
         self.transaction_id = self.compute_hash()
-        # self.username = username  # username for the client
-        # self.public_key = public_key  # public key of the client
-        # self.proof = proof  # proof
         self.status = "OPEN"  # Open/Pending/Complete
 
     def admin_tx(self, round_change, leader_selection):
