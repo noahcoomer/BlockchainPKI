@@ -171,10 +171,9 @@ class Validator(Node):
                     return
                 
                 # Deserialize the entire object when data reception has ended
-                                # Deserialize the entire object when data reception has ended
                 try:
                     data = pickle.loads(DATA)
-                except pickle.UnpicklingError:
+                except KeyError, pickle.UnpicklingError:
                     # The data received most likely wasn't a Transaction
                     data = DATA.decode()
 
