@@ -15,6 +15,11 @@ def val_thread(port):
     val.create_connections()
     while True:
         val.receive()
+        if len(val.mempool) == 5:
+            blk = val.create_block(0, 5)
+            print(blk)
+            break
+            
 
 def client_thread():
     cli = Client()
