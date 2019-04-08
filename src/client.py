@@ -24,6 +24,12 @@ class Client(Node):
         self.blockchain = None
         self.connections = list()
 
+    def message(self):
+        '''
+            Send messages
+        '''
+        pass
+
     def receive(self):
         '''
             Receive incoming connections
@@ -42,7 +48,7 @@ class Client(Node):
                 continue
             else:
                 v = Validator(
-                    name=arr[0], addr=arr[1], port=int(arr[2]), bind=False)
+                    hostname=arr[0], addr=arr[1], port=int(arr[2]), bind=False)
                 self.connections.append(v)
         f.close()
 
