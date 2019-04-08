@@ -47,7 +47,7 @@ class Block:
 
         '''
         for tx in transactions:
-            tx_hash = hashlib.sha256(tx.encode()).hexdigest()
+            tx_hash = tx.compute_hash()
             self.sha256_txs.append(tx_hash)
 
         # Initialize merkel root when the block is empty (no transaction)
