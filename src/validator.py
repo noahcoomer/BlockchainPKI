@@ -179,10 +179,10 @@ class Validator(object):
                     if (end_time - start_time) >= 10:
                         start_time = int(time.time())
                         print("Call Round Robin to chose the leader")
-                        self.create_block(self.mempool)
+                        #self.create_block(self.mempool)
                     elif len(self.mempool) >= 10:
                         start_time = int(time.time())
-                        self.create_block(self.mempool[:10])
+                        #self.create_block(self.mempool[:10])
                 elif type(decoded_message) == Block:
                     print("Call verification/consensus function to vote on Block")
         except socket.timeout:
@@ -287,12 +287,8 @@ class Validator(object):
         if self.bound:
             self.net.close()
 
-<<<<<<< HEAD
 
     def verify_txs(self, block):
-=======
-    def verify_txs(self, block, validators):
->>>>>>> c14aebd41db225fe6255382644216841894c70ed
         '''
         params - block - the new generated block sent from block generator
         '''
