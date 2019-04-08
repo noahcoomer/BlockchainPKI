@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 
 import pickle
 import hashlib
@@ -24,11 +25,14 @@ what does update, revoke is for , and query?
 '''
 
 >>>>>>> c14aebd41db225fe6255382644216841894c70ed
+=======
+import time
+import hashlib
+import pickle
+>>>>>>> 43977a93b32fef943318ff6c10c953a96fa09aa3
+
 
 class Transaction:
-
-    # constructor that set up the fields of the transaction
-
     def __init__(self, version=0.1, transaction_type=None, tx_generator_address=None,
                  inputs=None, outputs=None, lock_time=None):
         self.version = version  # specifies which rules this transaction follows
@@ -42,9 +46,6 @@ class Transaction:
         self.lock_time = lock_time
         self.time_stamp = int(time.time())  # transaction generation time
         self.transaction_id = self.compute_hash()
-        # self.username = username  # username for the client
-        # self.public_key = public_key  # public key of the client
-        # self.proof = proof  # proof
         self.status = "OPEN"  # Open/Pending/Complete
 
     def admin_tx(self, round_change, leader_selection):
@@ -60,7 +61,7 @@ class Transaction:
         pass
 
     def compute_hash(self):
-        tx_info = str(self)
+        tx_info = str(pickle.dumps(self))
         hash_256 = hashlib.sha256(tx_info.encode()).hexdigest()
         return hash_256
 
@@ -71,5 +72,6 @@ class Transaction:
         s = "<Transaction: "
         for attr, value in self.__dict__.items():
             s += "%s=%s, " % (attr, value or "None")
-        s += " >"
+        s = s[:-2].strip()
+        s += ">"
         return s

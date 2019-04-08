@@ -3,12 +3,12 @@ import time
 
 import sys
 sys.path.append('../src/')
-from validator import Validator
 from client import Client
+from validator import Validator
 from transaction import Transaction
 
 PORTS = [6666, 6644]
-TEST_KEY_PATH = open("/Users/noahcoomer/.BlockchainPKI/keys/public.pem", 'r')
+# TEST_KEY_PATH = open("/Users/noahcoomer/.BlockchainPKI/public.pem", 'r')
 
 def val_thread(port):
     val = Validator(port=port)
@@ -17,9 +17,8 @@ def val_thread(port):
         val.receive()
 
 def client_thread():
-    cli = Client(name="Client 1")
+    cli = Client()
     cli.create_connections()
-    cli._load_other_ca(capath=cli.validators_capath)
     for i in range(5):
         tx = Transaction(transaction_type='Standard', inputs=str(i))
         cli.broadcast_transaction(tx)
