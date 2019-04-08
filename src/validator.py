@@ -43,6 +43,9 @@ class Validator(Node):
             ssl.Purpose.CLIENT_AUTH)
         self.receive_context.load_cert_chain(self.certfile, self.keyfile)
 
+    def create_connections(self):
+        pass
+
     def save_new_certfile(self, data):
         '''
             Saves a new certificate that was received from a Validator
