@@ -37,11 +37,13 @@ TEST_KEY_3 = """-----BEGIN PUBLIC KEY-----
 
 #test_key_path = open("C:/Users/ryant/.BlockchainPKI/keys/public.pem","r")
 TEST_KEY_PATH = "/Users/noahcoomer/.BlockchainPKI/keys/public.pem"
+TEST_KEY_PATH_2 = "/Users/noahcoomer/.BlockchainPKI/keys/public.pem"
 
 def register_transaction(name):
     _client = Client()
+    #print(TEST_KEY_PATH.read())
     _client.blockchain = create_test_chain()
-    tx = _client.pki_register(TEST_KEY_PATH, name, TEST_KEY_PATH)
+    tx = _client.pki_register(TEST_KEY_PATH, name, TEST_KEY_PATH_2)
     try:
         if tx == -1:
             print("Exited with error.")
@@ -100,11 +102,13 @@ def main():
     print("Registration transaction tests:\n\n")
     # Passing registration transaction
     tx_reg_pass = register_transaction("unknown")
+    print(tx_reg_pass)
     status_dict = json.loads(tx_reg_pass.outputs)
     assert(status_dict["REGISTER"]["success"]) == True
     # Failing registration transaction
     tx_reg_fail = register_transaction("noah_coomer")
     status_dict = json.loads(tx_reg_fail.outputs)
+    print(tx_reg_fail)
     assert(status_dict["REGISTER"]["success"]) == False
 
     print("Query transaction tests:\n\n")
