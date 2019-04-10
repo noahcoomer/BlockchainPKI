@@ -32,7 +32,7 @@ class Validator(Node):
 
         # Buffer to store incoming transactions
         self.mempool = list()
-        self.blockchain = list()
+        self.blockchain = Blockchain()
         # Buffer to store connection objects
         self.connections = list()
 
