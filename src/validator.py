@@ -32,7 +32,8 @@ class Validator(Node):
 
         # Buffer to store incoming transactions
         self.mempool = list()
-        self.blockchain = list()
+        self.blockchain = Blockchain() #list()
+        self.block = Block()
         # Buffer to store connection objects
         self.connections = list()
 
@@ -42,6 +43,9 @@ class Validator(Node):
         self.receive_context = ssl.create_default_context(
             ssl.Purpose.CLIENT_AUTH)
         self.receive_context.load_cert_chain(self.certfile, self.keyfile)
+        self.first = 0 # First index of the new sent tx mempool
+        self.last = 0   # Last index of the new sent tx mempool
+        
 
     def create_connections(self):
         pass
@@ -184,7 +188,7 @@ class Validator(Node):
                         start_time = int(time.time())
                         last = None
                         print("Call Round Robin to chose the leader")
-                        self.create_block(self.mempool, last)
+                        self.create_block(self.first, self.last)
                     elif len(self.mempool) >= 10:
                         start_time = int(time.time())
                         last = None
@@ -207,24 +211,35 @@ class Validator(Node):
             pass
         else:
             if tx not in self.mempool:
+                self.last = self.last + 1
                 tx.status = "Open"
                 self.mempool.append(tx)
+
 
     def create_block(self, first, last):
         block_tx_pool = []
         for tx in range(first, last):
             block_tx_pool.append(self.mempool[tx])
-        return Block(
+
+        self.block = Block(
             version=0.1,
             id=len("Blockchain.block_index"),
             transactions=block_tx_pool,
-            previous_hash=Blockchain.last_block(self).hash,
+            previous_hash=self.blockchain.last_block.hash,
             block_generator_address=self.address,
             block_generation_proof=self.certfile,
             nonce=0,
             status="Proposed"
         )
+
+
+    # Add block to the blockchain
+    def add_block(self):
+        self.first = self.last + 1
+        self.blockchain.add_block(self.block, self.block.compute_hash())
     
+
+
     def send_certificate(self, addr, port):
         '''
             Sends the certificate to addr:port through 
