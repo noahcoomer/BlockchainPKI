@@ -173,11 +173,14 @@ class Validator(Node):
                 # Deserialize the entire object when data reception has ended
                 try:
                     data = pickle.loads(DATA)
-                except KeyError, pickle.UnpicklingError:
+                except pickle.UnpicklingError:
                     # The data received most likely wasn't a Transaction
                     data = DATA.decode()
+                else:
+                    # Except other possible errors
+                    data = DATA.decode()
 
-                if type(data) == Transaction:
+                if isinstance(data, Transaction):
                     # Add transaction to the pool
                     self.add_transaction(data)
                     # broadcast to network
@@ -261,16 +264,11 @@ class Validator(Node):
         
 if __name__ == "__main__":
     port = int(input("Enter a port number: "))
-    val = Validator(hostname="localhost", port=port)
-
-    marshal = Validator(hostname="marshalhayes.freeddns.org", port=8080, bind=False)
+    val = Validator(port=port)
+    marshal = Validator(hostname="home.marshalh.com", port=8080, bind=False)
 
     try:
         while True:
-            # Sending plaintext (raw binary)
-            val.message(marshal, "hello, this is val!")
-            time.sleep(1)
-
             # Sending a Transaction
             t = Transaction()
             val.message(marshal, t)

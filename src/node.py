@@ -27,7 +27,10 @@ class Node(ABC):
         if not bind:
             assert hostname != None, "Hostname must be specified when not binding"
             self.hostname = hostname
-            self.address = (socket.gethostbyname(self.hostname), 8080)
+            try:
+                self.address = (socket.gethostbyname(self.hostname), 8080)
+            except socket.gaierror as e:
+                raise socket.gaierror("Unable to find IPv4 address of %s. Please specify manually." % self.hostname)
         else:
             self.hostname = hostname or socket.getfqdn(socket.gethostname())
             self.address = (addr, port)
@@ -84,7 +87,7 @@ class Node(ABC):
             return
         elif len(os.listdir(capath)) == 0:
             # The capath directory contains no files
-            raise FileNotFoundError("Directory %s is empty.")
+            raise FileNotFoundError("Directory %s is empty." % capath)
         else:
             # Load all the CAs
             cafiles = [path for path in os.listdir(
