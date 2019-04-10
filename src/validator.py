@@ -270,5 +270,6 @@ if __name__ == "__main__":
         while True:
             tx = Transaction(inputs=0)
             val.message(marshal, tx)
+            time.sleep(1)
     except KeyboardInterrupt:
         val.close()
