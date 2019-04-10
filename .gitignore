@@ -3,6 +3,6 @@
 .DS_Store
 venv
 __pycache__
-rootCA.key
-rootCA.pem
-.idea/
+*.key
+*.pem
+.pytest_cache/

@@ -5,8 +5,10 @@ from os.path import expanduser
 
 import sys
 sys.path.append('../src/')
-import blockchain, block, transaction
-import client
+from block import Block
+from client import Client
+from blockchain import Blockchain
+from transaction import Transaction
 
 TEST_KEY_1 = """-----BEGIN PUBLIC KEY-----
                 MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDQYD1K9cQt+FLYL4WsiiuDhsE6
@@ -33,96 +35,95 @@ TEST_KEY_3 = """-----BEGIN PUBLIC KEY-----
              """
 
 
-TEST_KEY_PATH = 'C:/Users/ryant/.BlockchainPKI/keys/public.pem'
-
-TEST_KEY_PATH_FOR_NEW_PUB_KEY = 'C:/Users/ryant/.BlockchainPKI/keys/new_pub.pem'
-
-#TEST_KEY_PATH = "/Users/noahcoomer/.BlockchainPKI/keys/public.pem"
-
-
+#test_key_path = open("C:/Users/ryant/.BlockchainPKI/keys/public.pem","r")
+TEST_KEY_PATH = "/Users/noahcoomer/.BlockchainPKI/keys/public.pem"
+TEST_KEY_PATH_2 = "/Users/noahcoomer/.BlockchainPKI/keys/public.pem"
+TEST_KEY_PATH_3 = "/Users/noahcoomer/test_key.txt"
 
 def register_transaction(name):
-    _client = client.Client(name="test_client")
+    _client = Client()
+    #print(TEST_KEY_PATH.read())
     _client.blockchain = create_test_chain()
-    # print(_client.blockchain.last_block.transactions)
-
     tx = _client.pki_register(TEST_KEY_PATH, name, TEST_KEY_PATH)
-
     try:
         if tx == -1:
             print("Exited with error.")
             return
     except:
-        # print_transaction_info(tx)
         return tx
-
 
 def query_transaction(query):
-    _client = client.Client(name="test_client")
+    _client = Client()
     _client.blockchain = create_test_chain()
-    # print(_client.blockchain.last_block.transactions)
-
     tx = _client.pki_query(TEST_KEY_PATH, query)
-
     try:
         if tx == -1:
             print("Exited with error.")
             return
     except:
-        # print_transaction_info(tx)
         return tx
 
-def validate_transaction(name):
-    _client = client.Client(name="test_client")
+def revoke_transaction():
+    _client = Client()
     _client.blockchain = create_test_chain()
-    tx = _client.pki_validate(TEST_KEY_PATH, name, TEST_KEY_PATH)
+    tx = _client.pki_revoke(TEST_KEY_PATH, TEST_KEY_PATH_3)
+    try:
+        if tx == -1:
+            print("Exited with error.")
+            return
+    except:
+        return tx
+
+def validate_transaction():
+    _client = Client()
+    _client.blockchain = create_test_chain()
+    tx = _client.pki_validate(TEST_KEY_PATH, "test_user", TEST_KEY_PATH_3)
+    try:
+        if tx == -1:
+            print("Exited with error.")
+            return
+    except:
+        return tx
     
-    try: 
-        if tx == -1:
-            print("Exited with error.")
-            return
-    except:
-        return tx
-
-
-def update_transaction(name):
-    _client = client.Client(name="test_client")
+def update_transaction():
+    _client = Client()
     _client.blockchain = create_test_chain()
-    tx = _client.pki_update(TEST_KEY_PATH, name, TEST_KEY_PATH, TEST_KEY_PATH_FOR_NEW_PUB_KEY)
-
-    try: 
+    tx = _client.pki_update(TEST_KEY_PATH, "test_user", TEST_KEY_PATH_3, TEST_KEY_PATH_2)
+    try:
         if tx == -1:
             print("Exited with error.")
             return
     except:
         return tx
-
 
 
 def create_test_chain():
-    chain = blockchain.Blockchain()
+    chain = Blockchain()
 
     inp_1 = {"REGISTER": {"name": "noah_coomer", "public_key": TEST_KEY_1}}
     inp_1 = json.dumps(inp_1)
-    tx_1 = transaction.Transaction(inputs=inp_1)
+    tx_1 = Transaction(inputs=inp_1)
 
     inp_2 = {"REGISTER": {"name": "lebron_james", "public_key": TEST_KEY_2}}
     inp_2 = json.dumps(inp_2)
-    tx_2 = transaction.Transaction(inputs=inp_2)
+    tx_2 = Transaction(inputs=inp_2)
 
     inp_3 = {"REGISTER": {"name": "ben_simmons", "public_key": TEST_KEY_3}}
     inp_3 = json.dumps(inp_3)
-    tx_3 = transaction.Transaction(inputs=inp_3)
+    tx_3 = Transaction(inputs=inp_3)
 
-    txs = [tx_1, tx_2, tx_3]
-    new_block = block.Block(
+    inp_4 = {"REGISTER": {"name": "test_user", "public_key": open(TEST_KEY_PATH_3, 'r').read()}}
+    inp_4 = json.dumps(inp_4)
+    tx_4 = Transaction(inputs=inp_4)
+
+    txs = [tx_1, tx_2, tx_3, tx_4]
+    new_block = Block(
         transactions=txs, previous_hash=chain.last_block.hash)
     success = chain.add_block(new_block, new_block.hash)
     if success:
         return chain
     else:
         print("Error")
-
 
 def print_transaction_info(tx):
     print("Transaction Info")
@@ -136,28 +137,42 @@ def print_transaction_info(tx):
     print("Timestamp: ", tx.time_stamp)
     print()
 
-
 def main():
-    print("Registration transaction tests:\n\n")
+    print("\nRegistration transaction tests:\n")
     # Passing registration transaction
     tx_reg_pass = register_transaction("unknown")
+    print(tx_reg_pass)
     status_dict = json.loads(tx_reg_pass.outputs)
     assert(status_dict["REGISTER"]["success"]) == True
     # Failing registration transaction
     tx_reg_fail = register_transaction("noah_coomer")
     status_dict = json.loads(tx_reg_fail.outputs)
+    print(tx_reg_fail)
     assert(status_dict["REGISTER"]["success"]) == False
 
-    print("Query transaction tests:\n\n")
+    print("\nQuery transaction tests:\n")
     # Passing query transaction
     tx_query_pass = query_transaction("lebron_james")
     status_dict = json.loads(tx_query_pass.outputs)
+    print(tx_query_pass)
     assert(status_dict["QUERY"]["success"]) == True
     # Failing query transaction
     tx_query_fail = query_transaction("noah")
     status_dict = json.loads(tx_query_fail.outputs)
+    print(tx_query_fail)
     assert(status_dict["QUERY"]["success"]) == False
 
+    print("\nRevoke transaction tests:\n")
+    tx_revoke_pass = revoke_transaction()
+    print(tx_revoke_pass)
+
+    print("\nValidate transaction tests:\n")
+    tx_val_pass = validate_transaction()
+    print(tx_val_pass)
+
+    print("\nUpdate transaction tests:\n")
+    tx_update_pass = update_transaction()
+    print(tx_update_pass)
 
 if __name__ == '__main__':
     main()
