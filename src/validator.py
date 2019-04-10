@@ -168,6 +168,7 @@ class Validator(Node):
                     self.save_new_certfile(data=DATA)
                     return
                 
+                #print(DATA)
                 # Deserialize the entire object when data reception has ended
                 decoded_message = pickle.loads(DATA)
                 print("Received data from %s:%d: %s" %
@@ -259,12 +260,12 @@ class Validator(Node):
         
 if __name__ == "__main__":
     port = int(input("Enter a port number: "))
-    val = Validator(hostname="localhost", port=port)
+    val = Validator(port=port)
     val2 = Validator(hostname="localhost", port=port+1)
 
     try:
         while True:
-            val.receive('insecure')
+            val.receive()
             val2.send_certificate(addr=val.address[0], port=val.address[1])
     except KeyboardInterrupt:
         val.close()
