@@ -46,7 +46,7 @@ class Transaction:
         self.lock_time = lock_time
         self.time_stamp = int(time.time())  # transaction generation time
         self.transaction_id = self.compute_hash()
-        self.status = "OPEN"  # Open/Pending/Complete
+        self.status = "Open"  # Open/Pending/Complete
 
     def admin_tx(self, round_change, leader_selection):
         if leader_selection == True:

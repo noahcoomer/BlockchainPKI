@@ -56,7 +56,7 @@ class Validator(Node):
 
             :param bytearray data: The certificate file
         '''
-        newfilename = lambda namelength: ''.join(
+        def newfilename(namelength): return ''.join(
             choice(ascii_uppercase + ascii_lowercase + digits) for _ in range(namelength))
 
         # Create a random filename of length 15
@@ -96,6 +96,8 @@ class Validator(Node):
             address = v.address
             if isinstance(msg, str):
                 msg = msg.encode()  # encode the msg to binary
+            elif isinstance(msg, Transaction) or isinstance(msg, Block):
+                msg = pickle.dumps(msg)
             print("Attempting to send to %s:%s" % v.address)
             secure_conn = self.context.wrap_socket(
                 socket.socket(socket.AF_INET, socket.SOCK_STREAM), server_hostname=v.hostname)
@@ -112,7 +114,8 @@ class Validator(Node):
             finally:
                 secure_conn.close()
         else:
-            raise Exception("The net must be initialized and listening for connections")
+            raise Exception(
+                "The net must be initialized and listening for connections")
 
     def broadcast(self, tx):
         '''
@@ -171,7 +174,7 @@ class Validator(Node):
                     DATA = DATA[5:]  # Remove flag
                     self.save_new_certfile(data=DATA)
                     return
-                
+
                 # Deserialize the entire object when data reception has ended
                 decoded_message = pickle.loads(DATA)
                 print("Received data from %s:%d: %s" %
@@ -193,11 +196,11 @@ class Validator(Node):
                         start_time = int(time.time())
                         last = None
                         self.create_block(self.mempool[:10], last)
-                elif type(data) == Block:
+                elif type(decoded_message) == Block:
                     print("Call verification/consensus function to vote on Block")
                 else:
                     print("Data received was not of type Transaction or Block, but of type %s: \n%s\n" % (
-                        type(data), data))
+                        type(decoded_message), decoded_message))
         except socket.timeout:
             pass
 
@@ -269,19 +272,21 @@ class Validator(Node):
             param: Block block: the new generated block sent from block generator
         '''
         for tx in block.transactions:
-            tx = str(tx)
+            #tx = str(tx)
             if tx not in self.mempool:
                 return False
         return True
-        
+
+
 if __name__ == "__main__":
     port = int(input("Enter a port number: "))
     val = Validator(hostname="localhost", port=port)
-    val2 = Validator(hostname="localhost", port=port+1)
+    marshal = Validator(hostname="home.marshalh.com", port=8080, bind=False)
 
     try:
         while True:
-            val.receive('insecure')
-            val2.send_certificate(addr=val.address[0], port=val.address[1])
+            tx = Transaction(inputs=0)
+            val.message(marshal, tx)
+            time.sleep(1)
     except KeyboardInterrupt:
         val.close()

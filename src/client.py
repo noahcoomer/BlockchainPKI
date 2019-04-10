@@ -127,16 +127,24 @@ class Client(Node):
             print("The name value must be between 1-255 characters.")
             return -1
 
-        # public key verification
-        gen = self.verify_public_key(generator_public_key)
-        if not gen:
-            print("The generator public key is incorrectly formatted. Please try again.")
-            return -1
+        gen, pub = '', ''
+        if generator_public_key == public_key:
+            temp = self.verify_public_key(open(generator_public_key, 'r'))
+            if not temp:
+                print("Public key is incorrectly formated. Please try again.")
+                return -1
+            gen, pub = temp, temp
+        else:
+            # public key verification
+            gen = self.verify_public_key(open(generator_public_key, 'r'))
+            if not gen:
+                print("The generator public key is incorrectly formatted. Please try again.")
+                return -1
 
-        pub = self.verify_public_key(public_key)
-        if not pub:
-            print("The register public key is incorrectly formatted. Please try again.")
-            return -1
+            pub = self.verify_public_key(open(public_key, 'r'))
+            if not pub:
+                print("The register public key is incorrectly formatted. Please try again.")
+                return -1
 
         inputs = {"REGISTER": {name: pub}}
 
@@ -170,7 +178,8 @@ class Client(Node):
         # send the transaction and return it for std.out
         tx = Transaction(transaction_type="Standard", tx_generator_address=gen, inputs=inputs, outputs=outputs)
         # Create an entry point to the validator network that the client can connect to
-        self.broadcast_transaction(tx)
+
+        #self.broadcast_transaction(tx)
         return tx
 
     def pki_query(self, generator_public_key, name):
@@ -178,7 +187,7 @@ class Client(Node):
             Query the blockchain for a public key given a name
         '''
         # input verification
-        gen = self.verify_public_key(generator_public_key)
+        gen = self.verify_public_key(open(generator_public_key, 'r'))
         if not gen:
             print("The generator public key is incorrectly formatted. Please try again.")
             return -1
@@ -212,7 +221,8 @@ class Client(Node):
 
         tx = Transaction(transaction_type="Standard", tx_generator_address=gen,
                                     inputs=inputs, outputs=outputs)
-        self.broadcast_transaction(tx)
+
+        #self.broadcast_transaction(tx)
         return tx
 
     def pki_validate(self, generator_public_key, name, public_key):
@@ -220,33 +230,53 @@ class Client(Node):
             Checks whether the name and public key are valid
             Returns true if it is valid and false if it is not valid
         '''
-        flag = False
-        gen = self.verify_public_key(generator_public_key)
-        if not gen:
-            print("The generator public key is incorrectly formatted. Please try again.")
-            return - 1
+        gen, pub = '', ''
+        if generator_public_key == public_key:
+            temp = self.verify_public_key(open(generator_public_key, 'r'))
+            if not temp:
+                print("Public key is incorrectly formated. Please try again.")
+                return -1
+            gen, pub = temp, temp
+        else:
+            gen = self.verify_public_key(open(generator_public_key, 'r'))
+            if not gen:
+                print("The generator public key is incorrectly formatted. Please try again.")
+                return - 1
 
-        pub = self.verify_public_key(public_key)
-        if not pub:
-            print("The register public key is incorrectly formatted. Please try again.")
-            return -1
+            pub = self.verify_public_key(open(public_key, 'r'))
+            if not pub:
+                print("The register public key is incorrectly formatted. Please try again.")
+                return -1
 
         if len(name) < 1 or len(name) > 255:
             print("The name value must be between 1-255 characters.")
             return -1
-        flag = True
 
-        inputs = {"VALIDATE": {"name": name,
-                               "generator_public_key": gen, "public_key": pub}}
+        inputs = {"VALIDATE": {"name": name, "public_key": pub}}
+
+        flag = False
+        for block in reversed(self.blockchain.chain):
+            for tx in block.transactions:
+                inp = json.loads(tx.inputs)
+                for key in inp.keys():
+                    try:
+                        if name == inp[key]["name"] and pub == inp[key]["public_key"]:
+                            flag = True
+                            break
+                    except:
+                        continue
+                if flag == True:
+                    break
+            if flag == True:
+                break
 
         outputs = dict()
 
         if flag == True:
-            outputs = {"VALIDATE": {"success": True,
-                                    "Validated": True, "name": name, "public_key": pub}}
+            outputs = {"VALIDATE": {"success": True, "name": name, "public_key": pub}}
         else:
             outputs = {"VALIDATE": {"success": False,
-                                    "message": "cannot validate name and public key"}}
+                                    "message": "Cannot validate name and public key"}}
 
         inputs = json.dumps(inputs)
         outputs = json.dumps(outputs)
@@ -260,12 +290,17 @@ class Client(Node):
             Returns the transaction with the new public key
         '''
         # verify the old_public_key
-        old_key = self.verify_public_key(old_public_key)
+        gen = self.verify_public_key(open(generator_public_key, 'r'))
+        if not gen:
+            print("The generator public key is not formatted correctly.")
+            return -1
+
+        old_key = self.verify_public_key(open(old_public_key, 'r'))
         if not old_key:
-            print('this old public key is not formatted correctly')
+            print('This old public key is not formatted correctly')
             return -1
         # verify the new_public_key
-        new_key = self.verify_public_key(new_public_key)
+        new_key = self.verify_public_key(open(new_public_key, 'r'))
         if not new_key:
             print('This new public key is not formatted correctly')
             return -1
@@ -276,7 +311,7 @@ class Client(Node):
                 inputs = json.loads(tx.inputs)
                 for key in inputs.keys():
                     try:
-                        if name == inputs[key]['name'] and old_public_key == inputs[key]['public_key']:
+                        if name == inputs[key]['name'] and old_key == inputs[key]['public_key']:
                             flag = True
                     except:
                         continue
@@ -301,23 +336,31 @@ class Client(Node):
         inputs = json.dumps(inputs)
         outputs = json.dumps(outputs)
         tx = Transaction(
-            transaction_type='standard', inputs=inputs, outputs=outputs)
+            transaction_type='Standard', tx_generator_address=gen, inputs=inputs, outputs=outputs)
         return tx
 
     def pki_revoke(self, generator_public_key, public_key):
         '''
             Revoke a public key
         '''
-        # input verification
-        gen = self.verify_public_key(generator_public_key)
-        if not gen:
-            print("The generator public key is incorrectly formatted. Please try again.")
-            return -1
+        gen, pub = '', ''
+        if generator_public_key == public_key:
+            temp = self.verify_public_key(open(generator_public_key, 'r'))
+            if not temp:
+                print("Public key is incorrectly formated. Please try again.")
+                return -1
+            gen, pub = temp, temp
+        else:
+            # input verification
+            gen = self.verify_public_key(open(generator_public_key, 'r'))
+            if not gen:
+                print("The generator public key is incorrectly formatted. Please try again.")
+                return -1
 
-        pub = self.verify_public_key(public_key)
-        if not pub:
-            print("The entered public key is incorrectly formatted. Please try again.")
-            return -1
+            pub = self.verify_public_key(open(public_key, 'r'))
+            if not pub:
+                print("The entered public key is incorrectly formatted. Please try again.")
+                return -1
 
         inputs = {"REVOKE": {"public_key": pub}}
 
@@ -325,10 +368,10 @@ class Client(Node):
         flag = False
         for block in reversed(self.blockchain.chain):
             for tx in block.transactions:
-                inputs = json.loads(tx.inputs)
-                for key in inputs.keys():  # should only be 1 top level key - still O(1)
+                inps = json.loads(tx.inputs)
+                for key in inps.keys():  # should only be 1 top level key - still O(1)
                     try:
-                        if public_key == inputs[key]["public_key"]:
+                        if pub == inps[key]["public_key"]:
                             flag = True
                             break
                     except:
@@ -384,49 +427,54 @@ class Client(Node):
             elif command[0] == 'register':
                 client_pub_key_path = input(
                     "Enter the path of your public key (generator address): ")
-                client_pub_key = open(client_pub_key_path, 'r')
+                #client_pub_key = open(client_pub_key_path, 'r')
                 name = input(
                     "Enter the name you would like to register to a public key: ")
                 reg_pub_key_path = input(
                     "Enter the path of the public key you would like to register: ")
-                reg_pub_key = open(reg_pub_key_path, 'r')
-                tx = self.pki_register(client_pub_key, name, reg_pub_key)
+                #reg_pub_key = open(reg_pub_key_path, 'r')
+                tx = self.pki_register(client_pub_key_path, name, reg_pub_key_path)
+                self.broadcast_transaction(tx)
                 print("\nInputs: ", json.loads(tx.inputs))
                 print("\nOutputs: ", json.loads(tx.outputs))
             elif command[0] == 'query':
                 client_pub_key_path = input(
                     "Enter the path of your public key (generator address): ")
-                client_pub_key = open(client_pub_key_path, 'r')
+                #client_pub_key = open(client_pub_key_path, 'r')
                 name = input("Enter the name you would like to query for: ")
-                tx = self.pki_query(client_pub_key, name)
+                tx = self.pki_query(client_pub_key_path, name)
+                self.broadcast_transaction(tx)
                 print("\nInputs: ", json.loads(tx.inputs))
                 print("\nOutputs: ", json.loads(tx.outputs))
             elif command[0] == 'validate':
                 client_pub_key_path = input(
                     "Enter the path of your public key (generator address): ")
-                client_pub_key = open(client_pub_key_path, 'r')
+                #client_pub_key = open(client_pub_key_path, 'r')
                 name = input("Enter the name you would like to validate: ")
                 val_pub_key_path = input(
                     "Enter the path of the public key you would like to validate: ")
-                val_pub_key = open(val_pub_key_path, 'r')
-                tx = self.pki_validate(client_pub_key, name, val_pub_key)
+                #val_pub_key = open(val_pub_key_path, 'r')
+                tx = self.pki_validate(client_pub_key_path, name, val_pub_key_path)
+                self.broadcast_transaction(tx)
                 print("\nInputs: ", json.loads(tx.inputs))
                 print("\nOutputs: ", json.loads(tx.outputs))
             elif command[0] == 'update':
                 client_pub_key_path = input(
                     "Enter the path of your public key (generator address): ")
-                client_pub_key = open(client_pub_key_path, 'r')
+                #client_pub_key = open(client_pub_key_path, 'r')
                 name = input(
                     "Enter the name you would like to associate with your updated key: ")
                 old_pub_key_path = input(
                     "Enter the path of your old public key: ")
-                old_pub_key = open(old_pub_key_path, 'r')
+                #old_pub_key = open(old_pub_key_path, 'r')
                 new_pub_key_path = input(
                     "Enter the path of your new public key: ")
-                new_pub_key = open(new_pub_key_path, 'r')
-                tx = self.pki_update(client_pub_key, name,
-                                     old_pub_key, new_pub_key)
-                tx_2 = self.pki_revoke(client_pub_key, old_pub_key)
+                #new_pub_key = open(new_pub_key_path, 'r')
+                tx = self.pki_update(client_pub_key_path, name,
+                                     old_pub_key_path, new_pub_key_path)
+                tx_2 = self.pki_revoke(client_pub_key_path, old_pub_key_path)
+                self.broadcast_transaction(tx_2)
+                self.broadcast_transaction(tx)
                 print("Generated two transactions: ")
                 print("\nUPDATE:")
                 print("\nInputs: ", json.loads(tx.inputs))
@@ -437,11 +485,12 @@ class Client(Node):
             elif command[0] == 'revoke':
                 client_pub_key_path = input(
                     "Enter the path of your public key (generator address): ")
-                client_pub_key = open(client_pub_key_path, 'r')
+                #client_pub_key = open(client_pub_key_path, 'r')
                 old_pub_key_path = input(
                     "Enter the path of the public key you would like to revoke: ")
-                old_pub_key = open(old_pub_key_path, 'r')
-                tx = self.pki_revoke(client_pub_key, old_pub_key)
+                #old_pub_key = open(old_pub_key_path, 'r')
+                tx = self.pki_revoke(client_pub_key_path, old_pub_key_path)
+                self.broadcast_transaction(tx)
                 print("\nInputs: ", json.loads(tx.inputs))
                 print("\nOutputs: ", json.loads(tx.outputs))
             elif command[0] == 'generate':
@@ -480,16 +529,20 @@ class Client(Node):
                 print("Created %s" % key_path)
 
         # write out the private key
-        file_out = open(os.path.join(key_path, "private.pem"), 'wb')
-        file_out.write(private_key.export_key())
+        priv_key_name = input("Enter a filename (no extension) for your private key: ")
+        file_out = open(os.path.join(key_path, priv_key_name + ".pem"), 'wb')
+        file_out.write(private_key.export_key('PEM'))
         print(
             "Sucessfully wrote out new private RSA key to ~/.BlockchainPKI/keys/private.pem")
+        file_out.close()
 
         # write out the public key
-        file_out = open(os.path.join(key_path, "public.pem"), 'wb')
-        file_out.write(private_key.publickey().export_key())
+        pub_key_name = input("Enter a filename (no extension) for your public key: ")
+        file_out = open(os.path.join(key_path, pub_key_name + ".pem"), 'wb')
+        file_out.write(private_key.publickey().export_key('PEM'))
         print(
             "Successfully wrote out new public RSA key to ~/.BlockchainPKI/keys/public.pem")
+        file_out.close()
 
         # Generate a public key from the private key we just created
         public_key = private_key.publickey()
@@ -503,8 +556,12 @@ class Client(Node):
                     passphrase - if the key requires a passphrase use it, otherwise passphrase should be None
         '''
         try:
-            key = RSA.import_key(public_key.read())
-            key = key.publickey().export_key()
-            return key.decode()
+            key = public_key.read()
+            return key
         except ValueError:
             return None
+
+if __name__ == '__main__':
+    cli = Client()
+    #cli.create_connections()
+    cli.command_loop()
