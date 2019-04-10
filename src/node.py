@@ -28,6 +28,7 @@ class Node(ABC):
         if not bind:
             assert hostname != None, "Hostname must be specified when not binding"
             self.hostname = hostname
+            self.address = (socket.gethostbyname(self.hostname), port)
         else:
             self.hostname = hostname or socket.getfqdn(socket.gethostname())
             self._init_net()
