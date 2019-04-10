@@ -19,24 +19,19 @@ import pickle
 
 class Client(Node):
     def __init__(self, hostname=None, addr="0.0.0.0", port=4848, capath="~/.BlockchainPKI/validators/"):
-        super().__init__(hostname=hostname, addr=addr, port=port, bind=True, capath=capath)
-
-<<<<<<< HEAD
+        '''
             :param str name: A canonical name
             :param str addr: The ip address for serving inbound connections
             :param int port: The port for serving inbound connections
             :param str capath:
         '''
-        self.name = name or socket.getfqdn(socket.gethostname())
+        super().__init__(hostname=hostname, addr=addr, port=port, bind=True, capath=capath)
+        self.name = hostname or socket.getfqdn(socket.gethostname())
         self.address = addr, port
-        self.validators_capath = validators_capath
+        self.validators_capath = capath
         self.blockchain = None
         self.connections = []
         self._init_net()   
-=======
-        self.blockchain = None
-        self.connections = list()
->>>>>>> 43977a93b32fef943318ff6c10c953a96fa09aa3
 
     def message(self, t):
         '''
@@ -92,13 +87,7 @@ class Client(Node):
                 except socket.error as e:
                     print(e)
         else:
-<<<<<<< HEAD
-            raise Exception(
-                "The validator must be initialized and listening for connections")
-
-=======
             raise Exception("The validator must be initialized and listening for connections")
->>>>>>> 43977a93b32fef943318ff6c10c953a96fa09aa3
 
     def broadcast_transaction(self, tx):
         '''
