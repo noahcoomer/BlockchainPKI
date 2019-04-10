@@ -176,9 +176,6 @@ class Validator(Node):
                 except pickle.UnpicklingError:
                     # The data received most likely wasn't a Transaction
                     data = DATA.decode()
-                else:
-                    # Except other possible errors
-                    data = DATA.decode()
 
                 if isinstance(data, Transaction):
                     # Add transaction to the pool
