@@ -192,11 +192,11 @@ class Validator(Node):
                         start_time = int(time.time())
                         last = None
                         self.create_block(self.mempool[:10], last)
-                elif type(data) == Block:
+                elif type(decoded_message) == Block:
                     print("Call verification/consensus function to vote on Block")
                 else:
                     print("Data received was not of type Transaction or Block, but of type %s: \n%s\n" % (
-                        type(data), data))
+                        type(decoded_message), decoded_message))
         except socket.timeout:
             pass
 
