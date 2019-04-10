@@ -163,6 +163,7 @@ class Validator(Node):
                     # (until the client sends empty data)
                     DATA += data
                     data = s.recv(BUFF_SIZE)
+                del data
 
                 if b'/cert' in DATA:
                     # Validator sent their certificate
@@ -177,7 +178,7 @@ class Validator(Node):
                     # The data received most likely wasn't a Transaction
                     data = DATA.decode()
 
-                if isinstance(data, Transaction):
+                if type(data) == Transaction:
                     # Add transaction to the pool
                     self.add_transaction(data)
                     # broadcast to network
