@@ -234,6 +234,7 @@ class Validator(Node):
             nonce=0,
             status="Proposed"
         )
+        return self.block
 
 
     # Add block to the blockchain
