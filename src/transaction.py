@@ -18,14 +18,6 @@ class Transaction:
         self.transaction_id = self.compute_hash()
         self.status = "Open"  # Open/Pending/Complete
 
-    def admin_tx(self, round_change, leader_selection):
-        if leader_selection == True:
-            round_change = False
-        else:
-            round_change = True
-
-    def regular_tx(self, registration, query, update, revoke):
-        pass
 
     def output(self):
         pass
