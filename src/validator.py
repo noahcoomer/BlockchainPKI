@@ -115,8 +115,10 @@ class Validator(Node):
             elif isinstance(msg, Transaction) or isinstance(msg, Block):
                 msg = pickle.dumps(msg)
             print("Attempting to send to %s:%s" % v.address)
+            print(v.hostname)
             secure_conn = self.context.wrap_socket(
                 socket.socket(socket.AF_INET, socket.SOCK_STREAM), server_hostname=v.hostname)
+            print(secure_conn)
             try:
                 secure_conn.connect(address)  # Connect to v
                 print("connected to v")
@@ -157,7 +159,7 @@ class Validator(Node):
         '''
         try:
             conn, addr = self.net.accept()
-            # print("Connection from %s:%d" % (addr[0], addr[1]))
+            print("Connection from %s:%d" % (addr[0], addr[1]))
             if mode is 'secure':
                 s = self.receive_context.wrap_socket(conn, server_side=True)
             else:
@@ -221,7 +223,8 @@ class Validator(Node):
                     # If we are receiving an old block, we know we have received a client connection
                     if decoded_message.id <= self.blockchain.last_block.id:
                         h_name = socket.gethostbyaddr(addr[0])[0]
-                        c = client.Client(hostname=h_name, addr=addr[0], port=addr[1])
+                        print(h_name)
+                        c = client.Client(hostname=h_name, addr=addr[0], port=addr[1], bind=False)
                         self.connections.append(c)
                         print(self.connections)
                         # Send the chain from the id onwards

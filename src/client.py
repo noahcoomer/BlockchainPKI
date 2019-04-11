@@ -21,20 +21,20 @@ import pickle
 BUFF_SIZE = 2048
 
 class Client(Node):
-    def __init__(self, hostname=None, addr="0.0.0.0", port=4848, capath="~/.BlockchainPKI/validators/"):
+    def __init__(self, hostname=None, addr="0.0.0.0", port=4848, bind=True, capath="~/.BlockchainPKI/validators/"):
         '''
             :param str name: A canonical name
             :param str addr: The ip address for serving inbound connections
             :param int port: The port for serving inbound connections
             :param str capath:
         '''
-        super().__init__(hostname=hostname, addr=addr, port=port, bind=True, capath=capath)
-        self.name = hostname or socket.getfqdn(socket.gethostname())
-        self.address = addr, port
-        self.validators_capath = capath
+        super().__init__(hostname=hostname, addr=addr, port=port, bind=bind, capath=capath)
+        #self.name = hostname or socket.getfqdn(socket.gethostname())
+        #self.address = addr, port
+        #self.validators_capath = capath
         self.blockchain = Blockchain()
         self.connections = []
-        self._init_net()   
+        #self._init_net()   
 
     def message(self, t):
         '''
@@ -48,7 +48,8 @@ class Client(Node):
         '''
         try:
             conn, addr = self.net.accept()
-            s = self.receive_context.wrap_socket(conn, server_side=False)
+            print("helo")
+            s = self.context.wrap_socket(conn, server_side=False)
             DATA = bytearray()  # used to store the incoming data
             with s:
                 data = s.recv(BUFF_SIZE)
@@ -57,7 +58,7 @@ class Client(Node):
                     # (until the client sends empty data)
                     DATA += data
                     data = s.recv(BUFF_SIZE)
-
+                print(data)
                 decoded_message = pickle.loads(DATA)
                 if type(decoded_message) == Block:
                     if decoded_message not in self.blockchain.chain:
@@ -99,9 +100,12 @@ class Client(Node):
             with self.context.wrap_socket(socket.socket(socket.AF_INET, socket.SOCK_STREAM), server_hostname=val.hostname) as s:
                 try:
                     # Connect to the validator
+                    print("trying to connect")
                     s.connect(address)
+                    print("connected")
                     # Send the entirety of the message
                     s.sendall(txn)
+                    s.close()
                 except OSError as e:
                     # Except cases for if the send fails
                     if e.errno == errno.ECONNREFUSED:
@@ -590,6 +594,8 @@ class Client(Node):
 if __name__ == '__main__':
     cli = Client()
     cli.create_connections()
-    cli.blockchain = cli.update_blockchain()
     recv = Thread(target=cli.receive)
+    recv.start()
+    cli.blockchain = cli.update_blockchain()
+    
     cli.command_loop()
