@@ -72,31 +72,41 @@ class Validator(object):
 
 
 
-    def send(self):
+    def message(self, v, msg):
         '''
-            Send thread; handles outgoing transactions
+            Send a message to another Validator
+            :param Validator v: receiver of the message
+            :param msg: the message to send
+            v's net should be initialized and listening for incoming connections,
+            probably bound to listen for all connections (addr="0.0.0.0").
+            msg must be an instance of str or bytes.
         '''
-
-
-    # def sign_message(self, private_key, message):
-    #     signer = PKCS1_v1_5.new(private_key)
-    #     sig = signer.sign(message)
-    #     return sig
-
-    # def verify_message(self, public_key, message):
-    #     verifier = PKCS1_v1_5.new(public_key)
-    #     verified = verifier.verify(message, sign_message())
-    #     assert verified, "Signature Verification Failed"
-
-    # def verify_transaction_signature(self, sender_address, signature, transaction):
-    #     """
-    #     Check that the provided signature corresponds to transaction
-    #     signed by the public key (sender_address)
-    #     """
-    #     public_key = RSA.importKey(binascii.unhexlify(sender_address))
-    #     verifier = PKCS1_v1_5.new(public_key)
-    #     h = SHA.new(str(transaction).encode('utf8'))
-    #     return verifier.verify(h, binascii.unhexlify(signature))
+        if self.net and self != v:
+            # Connect to v's inbound net using self's outbound net
+            address = v.address
+            if isinstance(msg, str):
+                msg = input('Client:')
+                msg = msg.encode()  # encode the msg to binary
+            elif isinstance(msg, Transaction) or isinstance(msg, Block):
+                msg = pickle.dumps(msg)
+            print("Attempting to send to %s:%s" % v.address)
+            secure_conn = self.context.wrap_socket(
+                socket.socket(socket.AF_INET, socket.SOCK_STREAM), server_hostname=v.hostname)
+            try:
+                secure_conn.connect(address)  # Connect to v
+                # Send the entirety of the message
+                secure_conn.sendall(msg)
+            except OSError as e:
+                # Except cases for if the send fails
+                if e.errno == errno.ECONNREFUSED:
+                    print(e)
+            except socket.error as e:
+                print(e)
+            finally:
+                secure_conn.close()
+        else:
+            raise Exception(
+                "The net must be initialized and listening for connections")
 
 
 if __name__ == "__main__":
