@@ -21,7 +21,8 @@ import pickle
 BUFF_SIZE = 2048
 
 class Client(Node):
-    def __init__(self, hostname=None, addr="0.0.0.0", port=4848, bind=True, capath="~/.BlockchainPKI/validators/"):
+    def __init__(self, hostname=None, addr="0.0.0.0", port=4848, bind=True, capath="~/.BlockchainPKI/validators/",
+                 certfile="~/.BlockchainPKI/rootCA.pem", keyfile="~/.BlockchainPKI/rootCA.key"):
         '''
             :param str name: A canonical name
             :param str addr: The ip address for serving inbound connections
@@ -34,7 +35,12 @@ class Client(Node):
         #self.validators_capath = capath
         self.blockchain = Blockchain()
         self.connections = []
-        #self._init_net()   
+        #self._init_net()
+        self.certfile = certfile.replace('~', os.environ['HOME'])
+        self.keyfile = keyfile.replace('~', os.environ['HOME'])
+        self.receive_context = ssl.create_default_context(
+            ssl.Purpose.CLIENT_AUTH)
+        self.receive_context.load_cert_chain(self.certfile, self.keyfile)  
 
     def message(self, t):
         '''
@@ -48,8 +54,7 @@ class Client(Node):
         '''
         try:
             conn, addr = self.net.accept()
-            print("helo")
-            s = self.context.wrap_socket(conn, server_side=False)
+            s = self.receive_context.wrap_socket(conn, server_side=True)
             DATA = bytearray()  # used to store the incoming data
             with s:
                 data = s.recv(BUFF_SIZE)
@@ -58,7 +63,7 @@ class Client(Node):
                     # (until the client sends empty data)
                     DATA += data
                     data = s.recv(BUFF_SIZE)
-                print(data)
+
                 decoded_message = pickle.loads(DATA)
                 if type(decoded_message) == Block:
                     if decoded_message not in self.blockchain.chain:
@@ -100,12 +105,9 @@ class Client(Node):
             with self.context.wrap_socket(socket.socket(socket.AF_INET, socket.SOCK_STREAM), server_hostname=val.hostname) as s:
                 try:
                     # Connect to the validator
-                    print("trying to connect")
                     s.connect(address)
-                    print("connected")
                     # Send the entirety of the message
                     s.sendall(txn)
-                    s.close()
                 except OSError as e:
                     # Except cases for if the send fails
                     if e.errno == errno.ECONNREFUSED:
@@ -594,8 +596,8 @@ class Client(Node):
 if __name__ == '__main__':
     cli = Client()
     cli.create_connections()
-    recv = Thread(target=cli.receive)
-    recv.start()
     cli.blockchain = cli.update_blockchain()
+    while True:
+        cli.receive()
     
     cli.command_loop()

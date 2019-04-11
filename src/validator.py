@@ -121,7 +121,6 @@ class Validator(Node):
             print(secure_conn)
             try:
                 secure_conn.connect(address)  # Connect to v
-                print("connected to v")
                 # Send the entirety of the message
                 secure_conn.sendall(msg)
             except OSError as e:
@@ -146,6 +145,12 @@ class Validator(Node):
             #name = "val-" + str(i)
             #receiver = Validator(hostname=name, addr=ip, port=port)
             self.message(conn, tx)
+
+        # for addr in self.client_connections:
+        #     ip, port = addr
+        #     h_name = socket.gethostbyaddr(ip)
+        #     c = client.Client(hostname=h_name, addr=ip, port=port, bind=False)
+        #     self.message(c, tx)
 
     def receive(self, mode='secure'):
         '''
@@ -223,12 +228,12 @@ class Validator(Node):
                     # If we are receiving an old block, we know we have received a client connection
                     if decoded_message.id <= self.blockchain.last_block.id:
                         h_name = socket.gethostbyaddr(addr[0])[0]
-                        print(h_name)
-                        c = client.Client(hostname=h_name, addr=addr[0], port=addr[1], bind=False)
+                        c = client.Client(hostname=h_name, addr=addr[0], port=4848, bind=False)
+                        #self.client_connections.append((addr[0], 4848))
                         self.connections.append(c)
-                        print(self.connections)
                         # Send the chain from the id onwards
-                        self.message(c, self.blockchain.chain[decoded_message.id:])
+                        for blk in self.blockchain.chain[decoded_message.id:]:
+                            self.message(c, blk)
                 else:
                     print("Data received was not of type Transaction or Block, but of type %s: \n%s\n" % (
                         type(decoded_message), decoded_message))
