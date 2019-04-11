@@ -93,9 +93,8 @@ class Block:
         return self.compute_hash() == other.compute_hash()
 
     def __str__(self):
-        s = "<Block: "
+        s = "<Block>\n"
         for attr, value in self.__dict__.items():
-            s += "%s=%s, " % (attr, value or "None")
-        s = s[:-2].strip()
-        s += ">"
+            s += "\t --%s: %s\n" % (attr, value or "None")
+        s += "</Block>"
         return s
