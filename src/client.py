@@ -52,25 +52,26 @@ class Client(Node):
         '''
             Receive incoming connections
         '''
-        try:
-            conn, addr = self.net.accept()
-            s = self.receive_context.wrap_socket(conn, server_side=True)
-            DATA = bytearray()  # used to store the incoming data
-            with s:
-                data = s.recv(BUFF_SIZE)
-                while data:
-                    # Continue receiving chunks of the data until the buffer is empty
-                    # (until the client sends empty data)
-                    DATA += data
+        while True:
+            try:
+                conn, addr = self.net.accept()
+                s = self.receive_context.wrap_socket(conn, server_side=True)
+                DATA = bytearray()  # used to store the incoming data
+                with s:
                     data = s.recv(BUFF_SIZE)
+                    while data:
+                        # Continue receiving chunks of the data until the buffer is empty
+                        # (until the client sends empty data)
+                        DATA += data
+                        data = s.recv(BUFF_SIZE)
 
-                decoded_message = pickle.loads(DATA)
-                if type(decoded_message) == Block:
-                    if decoded_message not in self.blockchain.chain:
-                        self.blockchain.chain.append(decoded_message)
+                    decoded_message = pickle.loads(DATA)
+                    if type(decoded_message) == Block:
+                        if decoded_message not in self.blockchain.chain:
+                            self.blockchain.chain.append(decoded_message)
 
-        except socket.timeout:
-            pass
+            except socket.timeout:
+                pass
 
 
 
@@ -187,7 +188,9 @@ class Client(Node):
                 inp = json.loads(tx.inputs)
                 for key in inp.keys():
                     try:
-                        if name == inp[key]["name"]:
+                        if key == "REVOKE":
+                            continue
+                        if name == inp[key]["name"] or pub == inp[key]["public_key"]:
                             flag = True
                             break
                     except:
@@ -231,7 +234,7 @@ class Client(Node):
                 inputs = json.loads(tx.inputs)
                 for key in inputs.keys():  # should only be 1 top level key - still O(1)
                     try:
-                        if name == inputs[key]["name"]:
+                        if name == inputs[key]["name"] and key != "REVOKE":
                             public_key = inputs[key]["public_key"]
                     except:
                         continue
@@ -241,6 +244,7 @@ class Client(Node):
                 break
 
         inputs = {"QUERY": {"name": name}}
+
         outputs = dict()
         if public_key:
             outputs = {"QUERY": {"success": True, "public_key": public_key}}
@@ -292,6 +296,8 @@ class Client(Node):
                 inp = json.loads(tx.inputs)
                 for key in inp.keys():
                     try:
+                        if key == "REVOKE":
+                            continue
                         if name == inp[key]["name"] and pub == inp[key]["public_key"]:
                             flag = True
                             break
@@ -303,7 +309,6 @@ class Client(Node):
                 break
 
         outputs = dict()
-
         if flag == True:
             outputs = {"VALIDATE": {"success": True, "name": name, "public_key": pub}}
         else:
@@ -338,11 +343,13 @@ class Client(Node):
             return -1
 
         flag = False
-        for block in self.blockchain.chain:
+        for block in reversed(self.blockchain.chain):
             for tx in block.transactions:
                 inputs = json.loads(tx.inputs)
                 for key in inputs.keys():
                     try:
+                        if key == "REVOKE":
+                            continue
                         if name == inputs[key]['name'] and old_key == inputs[key]['public_key']:
                             flag = True
                     except:
@@ -479,7 +486,6 @@ class Client(Node):
                 #client_pub_key = open(client_pub_key_path, 'r')
                 name = input("Enter the name you would like to query for: ")
                 tx = self.pki_query(client_pub_key_path, name)
-                print(tx)
                 self.broadcast_transaction(tx)
                 print(tx)
             elif command[0] == 'validate':
@@ -597,7 +603,6 @@ if __name__ == '__main__':
     cli = Client()
     cli.create_connections()
     cli.blockchain = cli.update_blockchain()
-    while True:
-        cli.receive()
-    
+    recv = Thread(target=cli.receive)
+    recv.start()
     cli.command_loop()

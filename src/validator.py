@@ -115,10 +115,8 @@ class Validator(Node):
             elif isinstance(msg, Transaction) or isinstance(msg, Block):
                 msg = pickle.dumps(msg)
             print("Attempting to send to %s:%s" % v.address)
-            print(v.hostname)
             secure_conn = self.context.wrap_socket(
                 socket.socket(socket.AF_INET, socket.SOCK_STREAM), server_hostname=v.hostname)
-            print(secure_conn)
             try:
                 secure_conn.connect(address)  # Connect to v
                 # Send the entirety of the message
@@ -139,18 +137,8 @@ class Validator(Node):
         '''
             Broadcast a message to every other validator that is connected to this node
         '''
-        i = 0
         for conn in self.connections:
-            #ip, port = addr
-            #name = "val-" + str(i)
-            #receiver = Validator(hostname=name, addr=ip, port=port)
             self.message(conn, tx)
-
-        # for addr in self.client_connections:
-        #     ip, port = addr
-        #     h_name = socket.gethostbyaddr(ip)
-        #     c = client.Client(hostname=h_name, addr=ip, port=port, bind=False)
-        #     self.message(c, tx)
 
     def receive(self, mode='secure'):
         '''
@@ -317,7 +305,10 @@ class Validator(Node):
 if __name__ == "__main__":
     port = int(input("Enter a port number: "))
     val = Validator(hostname="localhost", port=port)
-   # marshal = Validator(hostname="home.marshalh.com", port=8080, bind=False)
+    
+    # THIS COMMAND SHOULD ONLY BE EXECUTED ON THE VERY FIRST VALIDATOR TO GO ACTIVE
+    val.blockchain.create_genesis_block()
+    # marshal = Validator(hostname="home.marshalh.com", port=8080, bind=False)
 
     try:
         while True:
