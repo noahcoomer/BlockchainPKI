@@ -284,11 +284,12 @@ class Validator(Node):
         # v = round # and n = validator nodes 
         # v % n = new leader
         round_num = self.round_num
-        num_nodes = 
+        num_nodes = 0
+        block_generator = 0
         for validator in self.connections:
             num_nodes += 1
-        
-        pass
+        block_generator = round_num % num_nodes
+        return block_generator
 
     def round_change(self):
         time_out = False
