@@ -5,6 +5,7 @@ from node import Node
 from block import Block
 from blockchain import Blockchain
 from transaction import Transaction
+import client
 
 import os
 import ssl
@@ -36,6 +37,8 @@ class Validator(Node):
         self.block = Block()
         # Buffer to store connection objects
         self.connections = list()
+        # Buffer to store client connection objects
+        self.client_connections = list()
 
         self.certfile = certfile.replace('~', os.environ['HOME'])
         self.keyfile = keyfile.replace('~', os.environ['HOME'])
@@ -48,7 +51,20 @@ class Validator(Node):
         
 
     def create_connections(self):
-        pass
+        '''
+            Create the connection objects from the validators info file and store them as a triple
+            arr[0] = hostname, arr[1] = ip, int(arr[2]) = port
+        '''
+        f = open('../validators.txt', 'r')
+        for line in f:
+            arr = line.split(' ')
+            if self.hostname == arr[0] and self.address == (arr[1], int(arr[2])):
+                continue
+            else:
+                v = Validator(
+                    hostname=arr[0], addr=arr[1], port=int(arr[2]), bind=False)
+                self.connections.append(v)
+        f.close()
 
     def save_new_certfile(self, data):
         '''
@@ -121,12 +137,8 @@ class Validator(Node):
         '''
             Broadcast a message to every other validator that is connected to this node
         '''
-        i = 0
-        for addr in self.connections:
-            ip, port = addr
-            name = "val-" + str(i)
-            receiver = Validator(hostname=name, addr=ip, port=port)
-            self.message(receiver, tx)
+        for conn in self.connections:
+            self.message(conn, tx)
 
     def receive(self, mode='secure'):
         '''
@@ -177,11 +189,12 @@ class Validator(Node):
 
                 # Deserialize the entire object when data reception has ended
                 decoded_message = pickle.loads(DATA)
-                print("Received data from %s:%d: %s" %
-                      (addr[0], addr[1], decoded_message))
+                # print("Received data from %s:%d: %s" %
+                #       (addr[0], addr[1], decoded_message))
                 if type(decoded_message) == Transaction:
                     # Add transaction to the pool
                     self.add_transaction(decoded_message)
+                    print(self.mempool)
                     # broadcast to network
                     self.broadcast(decoded_message)
                     end_time = int(time.time())
@@ -192,12 +205,26 @@ class Validator(Node):
                         last = None
                         print("Call Round Robin to chose the leader")
                         self.create_block(self.first, self.last)
-                    elif len(self.mempool) >= 10:
+                    elif len(self.mempool) >= 3:
                         start_time = int(time.time())
                         last = None
-                        self.create_block(self.mempool[:10], last)
+                        blk = self.create_block(0, 3)
+                        self.blockchain.chain.append(blk)
+                        self.broadcast(blk)
+                        self.mempool = list()
                 elif type(decoded_message) == Block:
-                    print("Call verification/consensus function to vote on Block")
+                    #print("Call verification/consensus function to vote on Block")
+                    # If we are receiving an old block, we know we have received a client connection
+                    if decoded_message.id <= self.blockchain.last_block.id:
+                        h_name = socket.gethostbyaddr(addr[0])[0]
+                        c = client.Client(hostname=h_name, addr=addr[0], port=4848, bind=False)
+                        #self.client_connections.append((addr[0], 4848))
+                        self.connections.append(c)
+                        # Send the chain from the id onwards
+                        for blk in self.blockchain.chain[decoded_message.id:]:
+                            self.message(c, blk)
+                    if decoded_message.id > self.blockchain.last_block.id:
+                        self.blockchain.chain.append(decoded_message)
                 else:
                     print("Data received was not of type Transaction or Block, but of type %s: \n%s\n" % (
                         type(decoded_message), decoded_message))
@@ -226,7 +253,7 @@ class Validator(Node):
 
         self.block = Block(
             version=0.1,
-            id=len("Blockchain.block_index"),
+            id=len(self.blockchain.chain),
             transactions=block_tx_pool,
             previous_hash=self.blockchain.last_block.hash,
             block_generator_address=self.address,
@@ -242,7 +269,6 @@ class Validator(Node):
         self.first = self.last + 1
         self.blockchain.add_block(self.block, self.block.compute_hash())
     
-
 
     def send_certificate(self, addr, port):
         '''
@@ -282,12 +308,16 @@ class Validator(Node):
 if __name__ == "__main__":
     port = int(input("Enter a port number: "))
     val = Validator(hostname="localhost", port=port)
-    marshal = Validator(hostname="home.marshalh.com", port=8080, bind=False)
+    
+    # THIS COMMAND SHOULD ONLY BE EXECUTED ON THE VERY FIRST VALIDATOR TO GO ACTIVE
+    #val.blockchain.create_genesis_block()
+    # marshal = Validator(hostname="home.marshalh.com", port=8080, bind=False)
 
     try:
         while True:
-            tx = Transaction(inputs=0)
-            val.message(marshal, tx)
-            time.sleep(1)
+            # tx = Transaction(inputs=0)
+            # val.message(marshal, tx)
+            # time.sleep(1)
+            val.receive()
     except KeyboardInterrupt:
         val.close()
