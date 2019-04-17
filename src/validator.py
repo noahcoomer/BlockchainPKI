@@ -209,6 +209,7 @@ class Validator(Node):
                         start_time = int(time.time())
                         last = None
                         blk = self.create_block(0, 3)
+                        self.blockchain.chain.append(blk)
                         self.broadcast(blk)
                         self.mempool = list()
                 elif type(decoded_message) == Block:
@@ -222,6 +223,8 @@ class Validator(Node):
                         # Send the chain from the id onwards
                         for blk in self.blockchain.chain[decoded_message.id:]:
                             self.message(c, blk)
+                    if decoded_message.id > self.blockchain.last_block.id:
+                        self.blockchain.chain.append(decoded_message)
                 else:
                     print("Data received was not of type Transaction or Block, but of type %s: \n%s\n" % (
                         type(decoded_message), decoded_message))
@@ -307,7 +310,7 @@ if __name__ == "__main__":
     val = Validator(hostname="localhost", port=port)
     
     # THIS COMMAND SHOULD ONLY BE EXECUTED ON THE VERY FIRST VALIDATOR TO GO ACTIVE
-    val.blockchain.create_genesis_block()
+    #val.blockchain.create_genesis_block()
     # marshal = Validator(hostname="home.marshalh.com", port=8080, bind=False)
 
     try:
