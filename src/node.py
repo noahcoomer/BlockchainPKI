@@ -1,5 +1,6 @@
-from random import randint
+from random import randint, choice
 from abc import ABC, abstractmethod
+from string import ascii_uppercase, ascii_lowercase, digits
 
 import os
 import ssl
@@ -122,6 +123,38 @@ class Node(ABC):
                 print(e)
             except socket.timeout as e:
                 print(e)
+
+    def save_new_certfile(self, data):
+        '''
+            Saves a new certificate that was received from a Validator
+
+            :param bytearray data: The certificate file
+        '''
+        def newfilename(namelength): return ''.join(
+            choice(ascii_uppercase + ascii_lowercase + digits) for _ in range(namelength))
+
+        # Create a random filename of length 15
+        filename = newfilename(15)
+        path = os.path.join(
+            self.capath, "%s.pem" % filename)
+
+        # Make sure a file doesn't already exist with that name. If it does, make a new name.
+        while os.path.exists(path):
+            path = os.path.join(self.capath, "%s.pem" % newfilename(15))
+
+        # Save the certificate and remake the context with the new certificate included
+        for p in os.listdir(self.capath):
+            if p.endswith('.pem'):
+                p = os.path.join(self.capath, p)
+                content = open(p, 'rb').read()
+                if content == data:
+                    print("This certificate already exists at %s" % p)
+                    return
+        with open(path, 'wb') as f:
+            f.write(data)
+        print("New CA added at %s" % path)
+        self.load_other_ca(self.capath)
+        print("Reloaded Validator CAs")
 
     def close(self):
         if self.net != None:

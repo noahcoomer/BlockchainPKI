@@ -1,6 +1,3 @@
-from random import choice
-from string import ascii_uppercase, ascii_lowercase, digits
-
 from node import Node
 from block import Block
 from blockchain import Blockchain
@@ -34,7 +31,8 @@ class Validator(Node):
 
         # Buffer to store incoming transactions
         self.mempool = list()
-        self.blockchain = Blockchain()  # list()
+        self.blockchain = Blockchain()
+        # self.blockchain.create_genesis_block(). This should only be run on first Validator.
         self.block = Block()
 
         # Buffer to store connection objects
@@ -59,38 +57,6 @@ class Validator(Node):
                     hostname=arr[0], addr=arr[1], port=int(arr[2]), bind=False)
                 self.connections.append(v)
         f.close()
-
-    def save_new_certfile(self, data):
-        '''
-            Saves a new certificate that was received from a Validator
-
-            :param bytearray data: The certificate file
-        '''
-        def newfilename(namelength): return ''.join(
-            choice(ascii_uppercase + ascii_lowercase + digits) for _ in range(namelength))
-
-        # Create a random filename of length 15
-        filename = newfilename(15)
-        path = os.path.join(
-            self.capath, "%s.pem" % filename)
-
-        # Make sure a file doesn't already exist with that name. If it does, make a new name.
-        while os.path.exists(path):
-            path = os.path.join(self.capath, "%s.pem" % newfilename(15))
-
-        # Save the certificate and remake the context with the new certificate included
-        for p in os.listdir(self.capath):
-            if p.endswith('.pem'):
-                p = os.path.join(self.capath, p)
-                content = open(p, 'rb').read()
-                if content == data:
-                    print("This certificate already exists at %s" % p)
-                    return
-        with open(path, 'wb') as f:
-            f.write(data)
-        print("New CA added at %s" % path)
-        self.load_other_ca(self.capath)
-        print("Reloaded Validator CAs")
 
     def message(self, v, msg):
         '''
@@ -205,6 +171,7 @@ class Validator(Node):
                     elif len(self.mempool) >= 3:
                         start_time = int(time.time())
                         blk = self.create_block(0, 3)
+                        self.blockchain.chain.append(blk)
                         self.broadcast(blk)
                         self.mempool = list()
                 elif type(decoded_message) == Block:
@@ -217,6 +184,8 @@ class Validator(Node):
                         # Send the chain from the id onwards
                         for blk in self.blockchain.chain[decoded_message.id:]:
                             self.message(c, blk)
+                    if decoded_message.id > self.blockchain.last_block.id:
+                        self.blockchain.chain.append(decoded_message)
                 else:
                     print("Data received was not of type Transaction or Block, but of type %s: \n%s\n" % (
                         type(decoded_message), decoded_message))

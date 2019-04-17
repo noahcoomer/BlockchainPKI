@@ -62,8 +62,9 @@ class Client(Node):
                         data = s.recv(BUFF_SIZE)
 
                     decoded_message = pickle.loads(DATA)
+                    #print(decoded_message)
                     if type(decoded_message) == Block:
-                        if decoded_message not in self.blockchain.chain:
+                        if decoded_message.id > self.blockchain.last_block.id:
                             self.blockchain.chain.append(decoded_message)
             except socket.timeout:
                 pass
@@ -175,7 +176,7 @@ class Client(Node):
                     "The register public key is incorrectly formatted. Please try again.")
                 return -1
 
-        inputs = {"REGISTER": {name: pub}}
+        inputs = {"REGISTER": {"name": name, "public_key": pub}}
 
         # Validate that the name is not already in the blockchain, break if found
         flag = False
@@ -224,14 +225,18 @@ class Client(Node):
             print("The generator public key is incorrectly formatted. Please try again.")
             return -1
 
+        revoke_dict = dict()
+
         # Query blockchain, break if we find our public key
         public_key = None
-        for block in reversed(self.blockchain.chain):
-            for tx in block.transactions:
+        for blk in reversed(self.blockchain.chain):
+            for tx in blk.transactions:
                 inputs = json.loads(tx.inputs)
                 for key in inputs.keys():  # should only be 1 top level key - still O(1)
                     try:
-                        if name == inputs[key]["name"] and key != "REVOKE":
+                        if key == "REVOKE":
+                            revoke_dict[inputs[key]["name"]] = inputs[key]["public_key"]
+                        if name == inputs[key]["name"] and name not in revoke_dict:
                             public_key = inputs[key]["public_key"]
                     except:
                         continue
@@ -290,8 +295,8 @@ class Client(Node):
         inputs = {"VALIDATE": {"name": name, "public_key": pub}}
 
         flag = False
-        for block in reversed(self.blockchain.chain):
-            for tx in block.transactions:
+        for blk in reversed(self.blockchain.chain):
+            for tx in blk.transactions:
                 inp = json.loads(tx.inputs)
                 for key in inp.keys():
                     try:
@@ -426,8 +431,9 @@ class Client(Node):
         if flag == True:
             outputs = {"REVOKE": {"success": True}}
         else:
-            outputs = {"REVOKE": {"success": False,
-                                  "message": "Public key not found."}}
+            # outputs = {"REVOKE": {"success": False,
+            #                      "message": "Public key not found."}}
+            outputs = {"REVOKE": {"success": False}}
 
         inputs = json.dumps(inputs)
         outputs = json.dumps(outputs)
