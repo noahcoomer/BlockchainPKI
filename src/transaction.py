@@ -2,6 +2,7 @@ import time
 import hashlib
 import pickle
 
+
 class Transaction:
     def __init__(self, version=0.1, transaction_type=None, tx_generator_address=None,
                  inputs=None, outputs=None, lock_time=None):
@@ -39,8 +40,9 @@ class Transaction:
         return self.compute_hash() == other.compute_hash()
 
     def __str__(self):
-        s = "<Transaction>\n"
+        classname = self.__class__.__name__
+        s = "<%s>\n" % classname
         for attr, value in self.__dict__.items():
             s += "\t --%s: %s\n" % (attr, value or "None")
-        s += "</Transaction>"
+        s += "</%s>" % classname
         return s
