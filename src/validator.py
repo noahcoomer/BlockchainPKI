@@ -45,6 +45,7 @@ class Validator(Node):
         self.receive_context.load_cert_chain(self.certfile, self.keyfile)
         self.first = 0 # First index of the new sent tx mempool
         self.last = 0   # Last index of the new sent tx mempool
+        self.leader = False
         
 
     def create_connections(self):
@@ -277,6 +278,27 @@ class Validator(Node):
             if tx not in self.mempool:
                 return False
         return True
+
+
+    def leader_selection(self, round_num)
+        # v = round # and n = validator nodes 
+        # v % n = new leader
+        round_num = self.round_num
+        num_nodes = 
+        for validator in self.connections:
+            num_nodes += 1
+        
+        pass
+
+    def round_change(self):
+        time_out = False
+        invalid_block = False
+        # time out can happen in prepared state and the commited state
+        # invalid_block can happen in the prepared state
+        # new round can start when time out, invalid_block, or reply happen, and it must broadcast to other validators that round change is happening 
+
+        pass
+
 
 
 if __name__ == "__main__":
