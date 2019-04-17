@@ -12,7 +12,8 @@ class Node(ABC):
         Base class for a generic node
     '''
 
-    def __init__(self, hostname=None, addr="0.0.0.0", port=4848, bind=True, capath="~/.BlockchainPKI/validators/"):
+    def __init__(self, hostname=None, addr="0.0.0.0", port=4848, bind=True, capath="~/.BlockchainPKI/validators/",
+                 certfile="~/.BlockchainPKI/rootCA.pem", keyfile="~/.BlockchainPKI/rootCA.key"):
         '''
             Initialize the Node object
 
@@ -32,6 +33,12 @@ class Node(ABC):
         else:
             self.hostname = hostname or socket.getfqdn(socket.gethostname())
             self._init_net()
+
+            self.certfile = certfile.replace('~', os.environ['HOME'])
+            self.keyfile = keyfile.replace('~', os.environ['HOME'])
+            self.receive_context = ssl.create_default_context(
+                ssl.Purpose.CLIENT_AUTH)
+            self.receive_context.load_cert_chain(self.certfile, self.keyfile)
 
     def _init_net(self):
         '''
@@ -74,6 +81,8 @@ class Node(ABC):
     def load_other_ca(self, capath=None):
         '''
             Loads a list of certificates from capath into the SSLContext
+
+            :param str capath: The path to load from. Can absolute or relative to $HOME.
         '''
         capath = capath or self.capath
         capath = capath.replace('~', os.environ['HOME'])
@@ -92,6 +101,27 @@ class Node(ABC):
             for path in cafiles:
                 abspath = os.path.join(capath, path)
                 self.context.load_verify_locations(abspath)
+
+    def send_certificate(self, addr, port):
+        '''
+            Sends the certificate to addr:port through 
+            standard, unencrypted TCP
+
+            :param str addr: the ipv4 address to send to
+            :param int port: the port number to send to
+        '''
+        certfile = open(self.certfile, 'rb').read()
+        print("Read certfile. Attempting to send to %s:%d" % (addr, port))
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            try:
+                s.connect((addr, port))
+                # Alert receiver that you want to send a certificate
+                s.send(b'/cert')
+                s.sendall(certfile)  # Send the certificate
+            except OSError as e:
+                print(e)
+            except socket.timeout as e:
+                print(e)
 
     def close(self):
         if self.net != None:
