@@ -2,6 +2,7 @@ from node import Node
 from validator import Validator
 from blockchain import Blockchain
 from transaction import Transaction
+from block import Block
 
 from Crypto import Random
 from Crypto.PublicKey import RSA
@@ -16,9 +17,13 @@ import socket
 import base64
 import pickle
 
+INCONN_THRESH = 128
+OUTCONN_THRESH = 8
+BUFF_SIZE = 2048
 
 class Client(Node):
-    def __init__(self, hostname=None, addr="0.0.0.0", port=4848, capath="~/.BlockchainPKI/validators/"):
+    def __init__(self, hostname=None, addr="0.0.0.0", port=4848, capath="~/.BlockchainPKI/validators/",
+                certfile="~/.BlockchainPKI/rootCA.pem", keyfile="~/.BlockchainPKI/rootCA.key"):
         '''
             :param str name: A canonical name
             :param str addr: The ip address for serving inbound connections
@@ -29,8 +34,16 @@ class Client(Node):
         self.name = hostname or socket.getfqdn(socket.gethostname())
         self.address = addr, port
         self.validators_capath = capath
-        self.blockchain = None
-        self.connections = []
+        self.blockchain = Blockchain()
+        self.connections = list()
+
+        self.certfile = certfile.replace('~', os.environ['HOME'])
+        self.keyfile = keyfile.replace('~', os.environ['HOME'])
+
+        self.receive_context = ssl.create_default_context(
+            ssl.Purpose.CLIENT_AUTH)
+        self.receive_context.load_cert_chain(self.certfile, self.keyfile)
+
         self._init_net()   
 
     def message(self, t):
@@ -39,11 +52,50 @@ class Client(Node):
         '''
         pass
 
-    def receive(self):
+    def receive(self, mode='secure'):
         '''
-            Receive incoming connections
+            Receive thread; handles incoming transactions
+            Deserialized the object/block and add the block into the blockchain local file.
+
+            :param: str mode: whether or not the connection is encrypted ('secure' or None).
+            mode=None specifies the connection should not be encrypted.
         '''
         pass
+
+
+    def update_blockchain(self, block):
+        '''
+            pickle.dump()
+            pickle.load()
+            
+            Update blockchain to be current
+        '''
+        try:
+            with open("blockchain.txt", "r") as file1:
+                self.blockchain = pickle.load(file1)
+
+            file1.close()
+
+            self.blockchain.add_block(block, block.compute_hash())
+            with open("blockchain.txt", "w") as file2:
+                pickle.dump(self.blockchain, file2)
+
+            file2.close()
+            print("Update Successful!")
+            
+        except:
+            print("Update Failed!")
+        
+
+
+
+    def validate_block(self, decoded_message):
+        '''
+            Validate the block header using hash of the previous block and the merkel root to validate
+        '''
+        pass
+
+    
 
     def create_connections(self):
         '''
@@ -96,12 +148,7 @@ class Client(Node):
         for i in self.connections:
             self.send_transaction(i, tx)
             
-    def update_blockchain(self):
-        '''
-            Update blockchain to be current
-        '''
-        chain = Blockchain()
-        return chain
+    
 
     def pki_register(self, generator_public_key, name, public_key):
         '''

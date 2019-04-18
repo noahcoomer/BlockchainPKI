@@ -151,3 +151,5 @@ class Blockchain:
 
     # def save_data(self):
     #     with open('blockchain.txt', 'w') as file_write:
+    def test(self):
+        print("Hey!")

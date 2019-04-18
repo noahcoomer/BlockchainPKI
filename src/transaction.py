@@ -2,6 +2,7 @@ import time
 import hashlib
 import pickle
 
+
 class Transaction:
     def __init__(self, version=0.1, transaction_type=None, tx_generator_address=None,
                  inputs=None, outputs=None, lock_time=None):
@@ -17,6 +18,7 @@ class Transaction:
         self.time_stamp = int(time.time())  # transaction generation time
         self.transaction_id = self.compute_hash()
         self.status = "Open"  # Open/Pending/Complete
+        
 
     def admin_tx(self, round_change, leader_selection):
         if leader_selection == True:
@@ -31,7 +33,7 @@ class Transaction:
         pass
 
     def compute_hash(self):
-        tx_info = str(pickle.dumps(self))
+        tx_info = str(pickle.dumps(self)) # This will call the Transaction object again; however, the timestamp will change
         hash_256 = hashlib.sha256(tx_info.encode()).hexdigest()
         return hash_256
 
@@ -44,3 +46,5 @@ class Transaction:
             s += "\t --%s: %s\n" % (attr, value or "None")
         s += "</Transaction>"
         return s
+
+
