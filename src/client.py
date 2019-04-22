@@ -71,13 +71,13 @@ class Client(Node):
             Update blockchain to be current
         '''
         try:
-            with open("blockchain.txt", "r") as file1:
+            with open("blockchain.txt", "rb") as file1:
                 self.blockchain = pickle.load(file1)
 
             file1.close()
 
             self.blockchain.add_block(block, block.compute_hash())
-            with open("blockchain.txt", "w") as file2:
+            with open("blockchain.txt", "wb") as file2:
                 pickle.dump(self.blockchain, file2)
 
             file2.close()

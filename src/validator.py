@@ -224,7 +224,7 @@ class Validator(Node):
         for tx in range(first, last):
             block_tx_pool.append(self.mempool[tx])
             #print(self.mempool[tx])
-
+        #print("len = ", len(block_tx_pool))
         self.block = Block(
             version=0.1,
             id=len("Blockchain.block_index"),
@@ -253,16 +253,18 @@ class Validator(Node):
             Update blockchain to be current
         '''
         try:
-            with open("blockchain.txt", "wb") as file2:
-                pickle.dump(self.blockchain, file2)
+            with open("blockchain.txt", "wb") as file2: 
+                pickle.dump(self.blockchain, file2) # Write the blockchain to the file
 
             file2.close()
             print("Update Successful!")
+            # After write the blockchain, read the blockchain again and return the updated version of the blockchain object
             with open("blockchain.txt", "rb") as file1:
                 bl = pickle.load(file1)
-            #print(bl)
+            
             file1.close()
-            return bl
+            return bl # bl will be an object
+
         except FileNotFoundError:
             print("File not found. Check the path variable and filename")
         

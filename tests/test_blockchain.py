@@ -8,6 +8,7 @@ from block import Block
 from validator import Validator
 from transaction import Transaction
 from blockchain import Blockchain
+from client import Client
 import test_block
 
 # # create a dummy transaction to be added to blockchain
@@ -28,13 +29,23 @@ import test_block
 
 def create_blockchain():
         vl = Validator()
-        
-        for i in range(0,9):
-                bl = test_block.new_block(i)
-                vl.blockchain.add_block(bl, bl.hash)
+
+        for i in range(0,2):
+                bl = test_block.new_block(i) # Create new block by calling new_block() method in test_block.py
+                rt = vl.blockchain.add_block(bl, bl.hash)
+                print("validation: ", rt)
         
         #print(blockchain)
         blockC = vl.update_blockchain()
+        print("Blockchain's length = ", len(blockC.chain))
+        print(blockC.last_block)
+
+        # Test update_blockchain() in client
+        cl = Client()
+        cl.blockchain = blockC
+        bl_test = test_block.new_block(10)
+        cl.update_blockchain(bl_test)
+        print("Blockchain's length = ", len(blockC.chain))
         print(blockC.last_block)
 
 create_blockchain()

@@ -15,7 +15,7 @@ class Transaction:
         self.outputs = outputs  # request result
         # a unix timestamp or block number-locktime defines the earlier time that a transaction can be added
         self.lock_time = lock_time
-        self.time_stamp = int(time.time())  # transaction generation time
+        self.time_stamp = 10#int(time.time())  # transaction generation time
         self.transaction_id = self.compute_hash()
         self.status = "Open"  # Open/Pending/Complete
         
@@ -33,7 +33,7 @@ class Transaction:
         pass
 
     def compute_hash(self):
-        tx_info = str(pickle.dumps(self)) # This will call the Transaction object again; however, the timestamp will change
+        tx_info = self.info_for_compute_hash() #str(pickle.dumps(self)) # This will call the Transaction object again; however, the timestamp will change
         hash_256 = hashlib.sha256(tx_info.encode()).hexdigest()
         return hash_256
 
@@ -47,4 +47,7 @@ class Transaction:
         s += "</Transaction>"
         return s
 
+    def info_for_compute_hash(self):
+        s = "<Transaction>" + str(self.version) + str(self.time_stamp) + str(self.inputs) + str(self.outputs) + "</Transaction>"
+        return s
 

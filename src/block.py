@@ -33,7 +33,7 @@ class Block:
         self.status = status
         # Total number of transaction included in this block => This will be used to verify the transaction from merkel root
         self.t_counter = len(self.transactions)
-        self.timestamp = int(time.time()) # Creation time of this block
+        self.timestamp = 10#int(time.time()) # Creation time of this block
         self.hash = self.compute_hash() # The hash of the block header
         
     def merkle_root_hash(self, transactions):
@@ -85,16 +85,27 @@ class Block:
         return hash_return.hexdigest()[::-1]
 
     def compute_hash(self):
-        block_info = str(pickle.dumps(self))
+        block_info = self.__str__()#self.info_for_hash_compute()#str(pickle.dumps(self))
         hash_256 = sha256(block_info.encode()).hexdigest()
         return hash_256
 
+        
     def __eq__(self, other):
         return self.compute_hash() == other.compute_hash()
+
 
     def __str__(self):
         s = "<Block>\n"
         for attr, value in self.__dict__.items():
-            s += "\t --%s: %s\n" % (attr, value or "None")
+            if attr == "transactions":
+                s += "\t --%s: \n" %(attr or "None")
+                for v in self.sha256_txs:
+                     s += v
+                s += "\n"
+            else:
+                s += "\t --%s: %s\n" % (attr, value or "None")
         s += "</Block>"
         return s
+
+
+   

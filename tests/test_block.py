@@ -43,6 +43,8 @@ def new_block(output):
         print(t)
     print("\nMerkel root of the block is ", bl.merkle_root)
     print("Hash of the block is ", bl.hash)
+    print("Block string: ", bl.__str__())
+    #print(vl.blockchain.chain[0])
 
     test_verification(vl, bl)
     
