@@ -21,7 +21,7 @@ BUFF_SIZE = 2048
 
 class Validator(Node):
     def __init__(self, hostname=None, addr="0.0.0.0", port=4848, bind=True, capath="~/.BlockchainPKI/validators/",
-                 certfile="~/.BlockchainPKI/rootCA.pem", keyfile="~/.BlockchainPKI/rootCA.key"):
+                 certfile="~/.BlockchainPKI/rootCA.pem", keyfile="~/.BlockchainPKI/rootCA.key", id = 0):
         '''
             Initialize a Validator
 
@@ -140,6 +140,7 @@ class Validator(Node):
             mode=None specifies the connection should not be encrypted.
         '''
         try:
+            round_num = 0
             conn, addr = self.net.accept()
             print("Connection from %s:%d" % (addr[0], addr[1]))
             if mode is 'secure':
@@ -192,6 +193,7 @@ class Validator(Node):
                         start_time = int(time.time())
                         last = None
                         print("Call Round Robin to chose the leader")
+                        bg = leader_selection(round_num)
                         self.create_block(self.first, self.last)
                     elif len(self.mempool) >= 10:
                         start_time = int(time.time())
@@ -199,6 +201,7 @@ class Validator(Node):
                         self.create_block(self.mempool[:10], last)
                 elif type(decoded_message) == Block:
                     print("Call verification/consensus function to vote on Block")
+                    round_change(bg)
                 else:
                     print("Data received was not of type Transaction or Block, but of type %s: \n%s\n" % (
                         type(decoded_message), decoded_message))
@@ -280,25 +283,48 @@ class Validator(Node):
         return True
 
 
+    #this function chooses the round leader base on the formula round_num % num_nodes 
     def leader_selection(self, round_num)
         # v = round # and n = validator nodes 
         # v % n = new leader
         round_num = self.round_num
         num_nodes = 0
-        block_generator = 0
+        block_generator_id = 0
         for validator in self.connections:
             num_nodes += 1
-        block_generator = round_num % num_nodes
-        return block_generator
+        block_generator_id = round_num % num_nodes
+        for validator in self.connections:
+            if validator.id == block_generator_id: 
+                block_generator = validator
+        return block_generator #this returns the validator with the id number of round_num % num_nodes
 
-    def round_change(self):
+    
+    
+    #this function checks whether a round neeeds to restart 
+    def round_change(self, leader):
         time_out = False
         invalid_block = False
+        switch_round = False
+        round_num = 0
         # time out can happen in prepared state and the commited state
         # invalid_block can happen in the prepared state
         # new round can start when time out, invalid_block, or reply happen, and it must broadcast to other validators that round change is happening 
+        while switch_round == False:
 
+            # commit stage
+            # at this stage check for timeout and invalid block
+            
+            #finalize leader count  
+            if switch_round:
+                break
+            round_num = round_num + 1  
+            
+        while switch_round:
+            # we need to pick a new round leader and 
+            current_bg = leader_selection(round_num)
+            
         pass
+
 
 
 
