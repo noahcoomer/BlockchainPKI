@@ -23,15 +23,15 @@ def new_transaction(input, output):
         inputs=input,
         outputs=output,
         lock_time=12334,
-        
+        time_stamp=10
     )
     transactions.time_stamp = 10
     #print("input = ", transactions.inputs, "timestamp=",transactions.time_stamp)
     return pickle.dumps(transactions)
 
 
-def new_block(output):
-    vl = Validator()
+def new_block(output, vl):
+    #vl = Validator()
     for i in range(1, 10):
         tx = new_transaction(i, output)
         decoded_message = pickle.loads(tx)
@@ -42,13 +42,20 @@ def new_block(output):
     for t in bl.sha256_txs:
         print(t)
     print("\nMerkel root of the block is ", bl.merkle_root)
-    print("Hash of the block is ", bl.hash)
-    print("Block string: ", bl.__str__())
+    bl_hash = bl.hash
+    print("Hash of the previous block is ", bl.previous_hash)
+    print("HASH OF NEW BLOCK ", bl_hash)
+    
+    #print("Block string: ", bl.__str__())
     #print(vl.blockchain.chain[0])
-
+    test_block_hash(bl_hash, bl)
     test_verification(vl, bl)
     
     return bl
+
+def test_block_hash(bl_hash, bl):
+    if bl_hash == bl.hash:
+        print("\nBlock's hash does not change")
 
 
 def test_verification(validator, block):

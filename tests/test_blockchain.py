@@ -28,25 +28,36 @@ import test_block
 #         assert transaction == my_transaction
 
 def create_blockchain():
+        print("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++VALIDATOR UPDATE_BLOCKCHAIN() TEST++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
+
         vl = Validator()
 
-        for i in range(0,2):
-                bl = test_block.new_block(i) # Create new block by calling new_block() method in test_block.py
-                rt = vl.blockchain.add_block(bl, bl.hash)
-                print("validation: ", rt)
+        for i in range(0,4):
+                test_block.new_block(i, vl) # Create new block by calling new_block() method in test_block.py and pass validator as parameter
+                rt = vl.add_block()
+                #print("validation: ", rt)
         
         #print(blockchain)
         blockC = vl.update_blockchain()
-        print("Blockchain's length = ", len(blockC.chain))
+        print("\nLOAD FILE!\nBlockchain's length = ", len(blockC.chain))
         print(blockC.last_block)
 
         # Test update_blockchain() in client
+        print("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++CLIENT UPDATE_BLOCKCHAIN() TEST++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
         cl = Client()
-        cl.blockchain = blockC
-        bl_test = test_block.new_block(10)
-        cl.update_blockchain(bl_test)
-        print("Blockchain's length = ", len(blockC.chain))
-        print(blockC.last_block)
+        bl_test = test_block.new_block(10, vl) # Create a new block
+        cl.update_blockchain(bl_test) # Update a new block to client's blockchain
+        print("Blockchain's length = ", len(cl.blockchain.chain))
+
+        # Load the file again and check if the new block has been added to the file
+        try:
+                with open("blockchain.txt", "rb") as file1:
+                        bl = pickle.load(file1)
+
+                print("\nLOAD FILE!... HASH OF NEW BLOCK is: ", bl.last_block.hash)
+                
+        except:
+            print("Update Failed!")
 
 create_blockchain()
 

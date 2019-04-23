@@ -9,11 +9,11 @@ import datetime as date
 
 class Block:
     def __init__(self, version=0.1, id=None, transactions=[], previous_hash=None, block_generator_address=None,
-                 block_generation_proof=None, nonce=None, status=None):
+                 block_generation_proof=None, nonce=None, status=None, time_stamp=None):
 
         # A version number to track software protocol upgrades
         self.version = version
-        self.id = id # Block index or block height
+        self.id = id  # Block index or block height
         # Transaction pool created by validator calling add_transaction() method
         self.transactions = transactions
         # Transaction pool with hashed transactions
@@ -33,7 +33,7 @@ class Block:
         self.status = status
         # Total number of transaction included in this block => This will be used to verify the transaction from merkel root
         self.t_counter = len(self.transactions)
-        self.timestamp = 10#int(time.time()) # Creation time of this block
+        self.timestamp = time_stamp#int(time.time()) # Creation time of this block
         self.hash = self.compute_hash() # The hash of the block header
         
     def merkle_root_hash(self, transactions):
@@ -95,7 +95,9 @@ class Block:
 
 
     def __str__(self):
-        s = "<Block>\n"
+        # classname = self.__class__._s_name__
+        # s = "<%s>\n" % classname
+        s = "\t</Block>\n"
         for attr, value in self.__dict__.items():
             if attr == "transactions":
                 s += "\t --%s: \n" %(attr or "None")

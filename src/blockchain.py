@@ -1,5 +1,6 @@
 from block import Block
 from transaction import Transaction
+
 import json
 import time
 
@@ -24,12 +25,12 @@ DUNGLE_PUBLIC_KEY = """-----BEGIN PUBLIC KEY-----
 
 class Blockchain:
     difficulty = 3
-    chain = []
+    #chain = []
     block_index = 0
 
     def __init__(self):
         self.unconfirmed_transactions = []
-        self.chain = []
+        self.chain = list()
         self.create_genesis_block()
 
     def create_genesis_block(self):
@@ -45,28 +46,40 @@ class Blockchain:
         outputs_2 = {"REGISTER": {"success": True}}
         outputs_2 = json.dumps(outputs_2)
 
+        # inputs_3 = {"REGISTER": {"name": "Noah_Coomer",
+        #                          "public_key": open("/Users/noahcoomer/.BlockchainPKI/keys/public.pem", 'r').read()}}
+        # inputs_3 = json.dumps(inputs_3)
+
+        # outputs_3 = {"REGISTER": {"success": True}}
+        # outputs_3 = json.dumps(outputs_3)
+
         tx_1 = Transaction(tx_generator_address=NOAH_PUBLIC_KEY,
                            inputs=inputs_1, outputs=outputs_1, lock_time=int(time.time()))
 
         tx_2 = Transaction(tx_generator_address=DUNGLE_PUBLIC_KEY,
                            inputs=inputs_1, outputs=outputs_1, lock_time=int(time.time()))
 
+        # tx_3 = Transaction(tx_generator_address=NOAH_PUBLIC_KEY,
+        #                    inputs=inputs_3, outputs=outputs_3, lock_time=int(time.time()))
+
         genesis_block = Block(
             version=0.1,
             id=0,
-            transactions=[tx_1, tx_2],
+            transactions=[tx_1, tx_2], #''', tx_3'''
             previous_hash="",
             block_generator_address="",
             block_generation_proof="",
             nonce=0,
-            status="Confirmed"
+            status="Confirmed",
+            #time_stamp=int(time.time())
         )
         self.chain.append(genesis_block)
 
     # last_block() returns the last block of the chain
     @property
     def last_block(self):
-        return self.chain[-1]
+        #print("self.chain[-1] = ", self.chain[-1])
+        return self.chain[-1] if len(self.chain) > 0 else None
 
     # Generate a concensus_hash number based on the concensus algorithms
     # This consensus algorithm does not use proof of work
@@ -92,14 +105,14 @@ class Blockchain:
 
         # Compare the hash of last block andthe previous_hash of the new block
         if previous_hash_temp != block.previous_hash:
+            print("FAILED TO ADD A BLOCK!")
             return False
-
-        # if self.is_valid_concensus_hash(block, concensus_hash) != True:
-         #   return False
 
         if block.hash == consensus_hash:
             self.chain.append(block)
             self.block_index = self.block_index + 1
+            print("ADDED A BLOCK! The chain's length = ", len(self.chain))
+            #print(self.chain, "\n")
             return True
         else:
             return False

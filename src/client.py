@@ -1,12 +1,14 @@
 from node import Node
-from validator import Validator
+from block import Block
 from blockchain import Blockchain
 from transaction import Transaction
 from block import Block
+import validator
 
 from Crypto import Random
 from Crypto.PublicKey import RSA
 from os.path import expanduser
+from threading import Thread
 
 import os
 import ssl
@@ -45,10 +47,17 @@ class Client(Node):
         self.receive_context.load_cert_chain(self.certfile, self.keyfile)
 
         self._init_net()   
+        super().__init__(hostname=hostname, addr=addr, port=port,
+                         bind=True, capath=capath, certfile=certfile, keyfile=keyfile)
+
+        self.blockchain = Blockchain()
+        self.connections = list()
 
     def message(self, t):
         '''
             Send a Transaction to the validator network
+
+            :param Transaction t: The transaction to send
         '''
         pass
 
@@ -60,7 +69,26 @@ class Client(Node):
             :param: str mode: whether or not the connection is encrypted ('secure' or None).
             mode=None specifies the connection should not be encrypted.
         '''
-        pass
+        while True:
+            try:
+                conn, addr = self.net.accept()
+                s = self.receive_context.wrap_socket(conn, server_side=True)
+                DATA = bytearray()  # used to store the incoming data
+                with s:
+                    data = s.recv(BUFF_SIZE)
+                    while data:
+                        # Continue receiving chunks of the data until the buffer is empty
+                        # (until the client sends empty data)
+                        DATA += data
+                        data = s.recv(BUFF_SIZE)
+
+                    decoded_message = pickle.loads(DATA)
+                    #print(decoded_message)
+                    if type(decoded_message) == Block:
+                        if decoded_message.id > self.blockchain.last_block.id:
+                            self.blockchain.chain.append(decoded_message)
+            except socket.timeout:
+                pass
 
 
     def update_blockchain(self, block):
@@ -76,18 +104,37 @@ class Client(Node):
 
             file1.close()
 
-            self.blockchain.add_block(block, block.compute_hash())
+            self.blockchain.add_block(block, block.hash)
             with open("blockchain.txt", "wb") as file2:
                 pickle.dump(self.blockchain, file2)
 
             file2.close()
-            print("Update Successful!")
+            print("Client Updated Successfully!")
             
         except:
             print("Update Failed!")
         
 
-
+    # def update_blockchain(self):
+    #     '''
+    #         Update blockchain to be current
+    #     '''
+    #     block_path = expanduser("~")
+    #     block_path = os.path.join(block_path, ".BlockchainPKI/chain/")
+    #     chain = None
+    #     if os.path.exists(block_path):
+    #         print("Loading local blockchain files...")
+    #         # Need to implement this
+    #     else:
+    #         # Else make the block path and initialize a chain
+    #         # Uncomment next line when serialization is finished
+    #         # os.path.mkdir(block_path)
+    #         chain = Blockchain()
+    #     # Broadcast the last block of our current chain to let the network know we need blocks after this point
+    #     # Uncomment next line before going live
+    #     self.broadcast_transaction(chain.last_block)
+    #     # receive until we are updated ???
+    #     return chain
 
     def validate_block(self, decoded_message):
         '''
@@ -102,16 +149,17 @@ class Client(Node):
             Create the connection objects from the validators info file and store them as a triple
             arr[0] = hostname, arr[1] = ip, int(arr[2]) = port
         '''
-        f = open('../validators.txt', 'r')
+        f = open('../validators_temp.txt', 'r')
         for line in f:
             arr = line.split(' ')
             if self.hostname == arr[0] and self.address == (arr[1], int(arr[2])):
                 continue
             else:
-                v = Validator(
+                v = validator.Validator(
                     hostname=arr[0], addr=arr[1], port=int(arr[2]), bind=False)
                 self.connections.append(v)
         f.close()
+
 
     def send_transaction(self, val, tx):
         '''
@@ -124,7 +172,7 @@ class Client(Node):
             # Serialize the transaction as a bytes object
             txn = pickle.dumps(tx)
             # Create a new socket (the outbound net)
-            print("Attempting to send to %s:%s" % val.address)
+            # print("Attempting to send to %s:%s" % val.address)
             with self.context.wrap_socket(socket.socket(socket.AF_INET, socket.SOCK_STREAM), server_hostname=val.hostname) as s:
                 try:
                     # Connect to the validator
@@ -139,7 +187,8 @@ class Client(Node):
                 except socket.error as e:
                     print(e)
         else:
-            raise Exception("The validator must be initialized and listening for connections")
+            raise Exception(
+                "The validator must be initialized and listening for connections")
 
     def broadcast_transaction(self, tx):
         '''
@@ -148,6 +197,8 @@ class Client(Node):
         for i in self.connections:
             self.send_transaction(i, tx)
             
+    
+
     
 
     def pki_register(self, generator_public_key, name, public_key):
@@ -174,15 +225,17 @@ class Client(Node):
             # public key verification
             gen = self.verify_public_key(open(generator_public_key, 'r'))
             if not gen:
-                print("The generator public key is incorrectly formatted. Please try again.")
+                print(
+                    "The generator public key is incorrectly formatted. Please try again.")
                 return -1
 
             pub = self.verify_public_key(open(public_key, 'r'))
             if not pub:
-                print("The register public key is incorrectly formatted. Please try again.")
+                print(
+                    "The register public key is incorrectly formatted. Please try again.")
                 return -1
 
-        inputs = {"REGISTER": {name: pub}}
+        inputs = {"REGISTER": {"name": name, "public_key": pub}}
 
         # Validate that the name is not already in the blockchain, break if found
         flag = False
@@ -191,7 +244,9 @@ class Client(Node):
                 inp = json.loads(tx.inputs)
                 for key in inp.keys():
                     try:
-                        if name == inp[key]["name"]:
+                        if key == "REVOKE":
+                            continue
+                        if name == inp[key]["name"] or pub == inp[key]["public_key"]:
                             flag = True
                             break
                     except:
@@ -212,10 +267,11 @@ class Client(Node):
         outputs = json.dumps(outputs)
 
         # send the transaction and return it for std.out
-        tx = Transaction(transaction_type="Standard", tx_generator_address=gen, inputs=inputs, outputs=outputs)
+        tx = Transaction(transaction_type="Standard",
+                         tx_generator_address=gen, inputs=inputs, outputs=outputs, time_stamp=int(time.time()))
         # Create an entry point to the validator network that the client can connect to
 
-        #self.broadcast_transaction(tx)
+        # self.broadcast_transaction(tx)
         return tx
 
     def pki_query(self, generator_public_key, name):
@@ -228,14 +284,18 @@ class Client(Node):
             print("The generator public key is incorrectly formatted. Please try again.")
             return -1
 
+        revoke_dict = dict()
+
         # Query blockchain, break if we find our public key
         public_key = None
-        for block in reversed(self.blockchain.chain):
-            for tx in block.transactions:
+        for blk in reversed(self.blockchain.chain):
+            for tx in blk.transactions:
                 inputs = json.loads(tx.inputs)
                 for key in inputs.keys():  # should only be 1 top level key - still O(1)
                     try:
-                        if name == inputs[key]["name"]:
+                        if key == "REVOKE":
+                            revoke_dict[inputs[key]["name"]] = inputs[key]["public_key"]
+                        if name == inputs[key]["name"] and name not in revoke_dict:
                             public_key = inputs[key]["public_key"]
                     except:
                         continue
@@ -245,6 +305,7 @@ class Client(Node):
                 break
 
         inputs = {"QUERY": {"name": name}}
+
         outputs = dict()
         if public_key:
             outputs = {"QUERY": {"success": True, "public_key": public_key}}
@@ -256,9 +317,9 @@ class Client(Node):
         outputs = json.dumps(outputs)
 
         tx = Transaction(transaction_type="Standard", tx_generator_address=gen,
-                                    inputs=inputs, outputs=outputs)
+                         inputs=inputs, outputs=outputs, time_stamp=int(time.time()))
 
-        #self.broadcast_transaction(tx)
+        # self.broadcast_transaction(tx)
         return tx
 
     def pki_validate(self, generator_public_key, name, public_key):
@@ -276,12 +337,14 @@ class Client(Node):
         else:
             gen = self.verify_public_key(open(generator_public_key, 'r'))
             if not gen:
-                print("The generator public key is incorrectly formatted. Please try again.")
+                print(
+                    "The generator public key is incorrectly formatted. Please try again.")
                 return - 1
 
             pub = self.verify_public_key(open(public_key, 'r'))
             if not pub:
-                print("The register public key is incorrectly formatted. Please try again.")
+                print(
+                    "The register public key is incorrectly formatted. Please try again.")
                 return -1
 
         if len(name) < 1 or len(name) > 255:
@@ -291,11 +354,13 @@ class Client(Node):
         inputs = {"VALIDATE": {"name": name, "public_key": pub}}
 
         flag = False
-        for block in reversed(self.blockchain.chain):
-            for tx in block.transactions:
+        for blk in reversed(self.blockchain.chain):
+            for tx in blk.transactions:
                 inp = json.loads(tx.inputs)
                 for key in inp.keys():
                     try:
+                        if key == "REVOKE":
+                            continue
                         if name == inp[key]["name"] and pub == inp[key]["public_key"]:
                             flag = True
                             break
@@ -307,9 +372,9 @@ class Client(Node):
                 break
 
         outputs = dict()
-
         if flag == True:
-            outputs = {"VALIDATE": {"success": True, "name": name, "public_key": pub}}
+            outputs = {"VALIDATE": {"success": True,
+                                    "name": name, "public_key": pub}}
         else:
             outputs = {"VALIDATE": {"success": False,
                                     "message": "Cannot validate name and public key"}}
@@ -317,7 +382,7 @@ class Client(Node):
         inputs = json.dumps(inputs)
         outputs = json.dumps(outputs)
         tx = Transaction(
-            transaction_type='standard', tx_generator_address=gen, inputs=inputs, outputs=outputs)
+            transaction_type='standard', tx_generator_address=gen, inputs=inputs, outputs=outputs, time_stamp=int(time.time()))
         return tx
 
     def pki_update(self, generator_public_key, name, old_public_key, new_public_key):
@@ -342,11 +407,13 @@ class Client(Node):
             return -1
 
         flag = False
-        for block in self.blockchain.chain:
+        for block in reversed(self.blockchain.chain):
             for tx in block.transactions:
                 inputs = json.loads(tx.inputs)
                 for key in inputs.keys():
                     try:
+                        if key == "REVOKE":
+                            continue
                         if name == inputs[key]['name'] and old_key == inputs[key]['public_key']:
                             flag = True
                     except:
@@ -372,7 +439,7 @@ class Client(Node):
         inputs = json.dumps(inputs)
         outputs = json.dumps(outputs)
         tx = Transaction(
-            transaction_type='Standard', tx_generator_address=gen, inputs=inputs, outputs=outputs)
+            transaction_type='Standard', tx_generator_address=gen, inputs=inputs, outputs=outputs, time_stamp=int(time.time()))
         return tx
 
     def pki_revoke(self, generator_public_key, public_key):
@@ -390,12 +457,14 @@ class Client(Node):
             # input verification
             gen = self.verify_public_key(open(generator_public_key, 'r'))
             if not gen:
-                print("The generator public key is incorrectly formatted. Please try again.")
+                print(
+                    "The generator public key is incorrectly formatted. Please try again.")
                 return -1
 
             pub = self.verify_public_key(open(public_key, 'r'))
             if not pub:
-                print("The entered public key is incorrectly formatted. Please try again.")
+                print(
+                    "The entered public key is incorrectly formatted. Please try again.")
                 return -1
 
         inputs = {"REVOKE": {"public_key": pub}}
@@ -421,14 +490,19 @@ class Client(Node):
         if flag == True:
             outputs = {"REVOKE": {"success": True}}
         else:
-            outputs = {"REVOKE": {"success": False,
-                                  "message": "Public key not found."}}
+            # outputs = {"REVOKE": {"success": False,
+            #                      "message": "Public key not found."}}
+            outputs = {"REVOKE": {"success": False}}
 
         inputs = json.dumps(inputs)
         outputs = json.dumps(outputs)
         tx = Transaction(transaction_type="Standard", tx_generator_address=gen,
-                                     inputs=inputs, outputs=outputs)
+                         inputs=inputs, outputs=outputs, time_stamp=int(time.time()))
         return tx
+
+    def print_chain(self):
+        for block in reversed(self.blockchain.chain):
+            print(block, "\n")
 
     def command_loop(self):
         # Ensure that the auxillary data folder is set up
@@ -451,6 +525,7 @@ class Client(Node):
                     "validate                         -verifies whether a pair of (name, public key) is valid or not")
                 print("update                           -Update a user's public key")
                 print("Local Functions:\n\n")
+                print("chain                          -Print out the current blockchain")
                 print(
                     "generate                         -Generate a public and private key pair.")
                 print(
@@ -469,10 +544,10 @@ class Client(Node):
                 reg_pub_key_path = input(
                     "Enter the path of the public key you would like to register: ")
                 #reg_pub_key = open(reg_pub_key_path, 'r')
-                tx = self.pki_register(client_pub_key_path, name, reg_pub_key_path)
+                tx = self.pki_register(
+                    client_pub_key_path, name, reg_pub_key_path)
                 self.broadcast_transaction(tx)
-                print("\nInputs: ", json.loads(tx.inputs))
-                print("\nOutputs: ", json.loads(tx.outputs))
+                print(tx)
             elif command[0] == 'query':
                 client_pub_key_path = input(
                     "Enter the path of your public key (generator address): ")
@@ -480,8 +555,7 @@ class Client(Node):
                 name = input("Enter the name you would like to query for: ")
                 tx = self.pki_query(client_pub_key_path, name)
                 self.broadcast_transaction(tx)
-                print("\nInputs: ", json.loads(tx.inputs))
-                print("\nOutputs: ", json.loads(tx.outputs))
+                print(tx)
             elif command[0] == 'validate':
                 client_pub_key_path = input(
                     "Enter the path of your public key (generator address): ")
@@ -490,10 +564,10 @@ class Client(Node):
                 val_pub_key_path = input(
                     "Enter the path of the public key you would like to validate: ")
                 #val_pub_key = open(val_pub_key_path, 'r')
-                tx = self.pki_validate(client_pub_key_path, name, val_pub_key_path)
+                tx = self.pki_validate(
+                    client_pub_key_path, name, val_pub_key_path)
                 self.broadcast_transaction(tx)
-                print("\nInputs: ", json.loads(tx.inputs))
-                print("\nOutputs: ", json.loads(tx.outputs))
+                print(tx)
             elif command[0] == 'update':
                 client_pub_key_path = input(
                     "Enter the path of your public key (generator address): ")
@@ -511,13 +585,9 @@ class Client(Node):
                 tx_2 = self.pki_revoke(client_pub_key_path, old_pub_key_path)
                 self.broadcast_transaction(tx_2)
                 self.broadcast_transaction(tx)
-                print("Generated two transactions: ")
-                print("\nUPDATE:")
-                print("\nInputs: ", json.loads(tx.inputs))
-                print("\nOutputs: ", json.loads(tx_2.outputs))
-                print("\nREVOKE:")
-                print("\nInputs: ", json.loads(tx_2.inputs))
-                print("\nOutputs: ", json.loads(tx_2.outputs))
+                print("Generated two transactions:")
+                print(tx_2)
+                print(tx)
             elif command[0] == 'revoke':
                 client_pub_key_path = input(
                     "Enter the path of your public key (generator address): ")
@@ -527,8 +597,7 @@ class Client(Node):
                 #old_pub_key = open(old_pub_key_path, 'r')
                 tx = self.pki_revoke(client_pub_key_path, old_pub_key_path)
                 self.broadcast_transaction(tx)
-                print("\nInputs: ", json.loads(tx.inputs))
-                print("\nOutputs: ", json.loads(tx.outputs))
+                print(tx)
             elif command[0] == 'generate':
                 private_key, public_key = self.generate_keys()
                 print()
@@ -536,6 +605,8 @@ class Client(Node):
                       public_key.export_key().decode(), "\n\n")
                 print("Your private key is:\n\n",
                       private_key.export_key().decode(), "\n\n")
+            elif command[0] == 'chain':
+                self.print_chain()
             elif command[0] == 'encrypt':
                 print("Implementation coming soon.")
             elif command[0] == 'decrypt':
@@ -565,7 +636,8 @@ class Client(Node):
                 print("Created %s" % key_path)
 
         # write out the private key
-        priv_key_name = input("Enter a filename (no extension) for your private key: ")
+        priv_key_name = input(
+            "Enter a filename (no extension) for your private key: ")
         file_out = open(os.path.join(key_path, priv_key_name + ".pem"), 'wb')
         file_out.write(private_key.export_key('PEM'))
         print(
@@ -573,7 +645,8 @@ class Client(Node):
         file_out.close()
 
         # write out the public key
-        pub_key_name = input("Enter a filename (no extension) for your public key: ")
+        pub_key_name = input(
+            "Enter a filename (no extension) for your public key: ")
         file_out = open(os.path.join(key_path, pub_key_name + ".pem"), 'wb')
         file_out.write(private_key.publickey().export_key('PEM'))
         print(
@@ -597,7 +670,11 @@ class Client(Node):
         except ValueError:
             return None
 
+
 if __name__ == '__main__':
     cli = Client()
-    #cli.create_connections()
+    cli.create_connections()
+    cli.blockchain = cli.update_blockchain()
+    recv = Thread(target=cli.receive)
+    recv.start()
     cli.command_loop()
