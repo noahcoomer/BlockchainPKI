@@ -64,7 +64,8 @@ def test_verification(validator, block):
 
 
 def main():
-    new_block(10)
+    vl = Validator()
+    new_block(10,vl)
 
 if __name__ == '__main__':
     main()
