@@ -62,7 +62,7 @@ class Client(Node):
                         data = s.recv(BUFF_SIZE)
 
                     decoded_message = pickle.loads(DATA)
-                    #print(decoded_message)
+                    # print(decoded_message)
                     if type(decoded_message) == Block:
                         if decoded_message.id > self.blockchain.last_block.id:
                             self.blockchain.chain.append(decoded_message)
@@ -84,6 +84,10 @@ class Client(Node):
                     hostname=arr[0], addr=arr[1], port=int(arr[2]), bind=False)
                 self.connections.append(v)
         f.close()
+
+        for v in self.connections:
+            addr = v.address
+            self.send_certificate(addr=[0], port=addr[1])
 
     def send_transaction(self, val, tx):
         '''
@@ -235,7 +239,8 @@ class Client(Node):
                 for key in inputs.keys():  # should only be 1 top level key - still O(1)
                     try:
                         if key == "REVOKE":
-                            revoke_dict[inputs[key]["name"]] = inputs[key]["public_key"]
+                            revoke_dict[inputs[key]["name"]
+                                        ] = inputs[key]["public_key"]
                         if name == inputs[key]["name"] and name not in revoke_dict:
                             public_key = inputs[key]["public_key"]
                     except:

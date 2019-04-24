@@ -58,6 +58,11 @@ class Validator(Node):
                 self.connections.append(v)
         f.close()
 
+        # Send each validator the CA
+        for v in self.connections:
+            addr = v.address
+            self.send_certificate(addr=[0], port=addr[1])
+
     def message(self, v, msg):
         '''
             Send a message to another Validator
