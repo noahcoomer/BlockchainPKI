@@ -4,6 +4,7 @@ from blockchain import Blockchain
 from transaction import Transaction
 from block import Block
 import validator
+from hashlib import sha256
 
 from Crypto import Random
 from Crypto.PublicKey import RSA
@@ -52,6 +53,9 @@ class Client(Node):
 
         self.blockchain = Blockchain()
         self.connections = list()
+        self.tx = Transaction()
+        self.tx_2 = Transaction()
+
 
     def message(self, t):
         '''
@@ -86,9 +90,29 @@ class Client(Node):
                     #print(decoded_message)
                     if type(decoded_message) == Block:
                         if decoded_message.id > self.blockchain.last_block.id:
-                            self.blockchain.chain.append(decoded_message)
+                            # Validate that the sent transaction is in the block sent back from validator?
+                            if self.validate_transaction_in_block(decoded_message) == True:
+                                # If TRUE => Use update_blockchain(block) method to add the block to the blockchain
+                                self.update_blockchain(decoded_message)
+                            else:
+                                print("Transaction is not in the block! Block might be compromised!!!")
+                                
             except socket.timeout:
-                pass
+                pass    
+                
+    # Validate if the transaction is inside the block using merkel_root
+    def validate_transaction_in_block(self, block):
+
+        transaction_hash = self.tx.compute_hash()
+
+        if transaction_hash in block.sha256_txs:
+            return True
+        else:
+            transaction_hash = self.tx_2.compute_hash()
+            if transaction_hash in block.sha256_txs:
+                return True
+            else:
+                return False
 
 
     def update_blockchain(self, block):
@@ -544,18 +568,18 @@ class Client(Node):
                 reg_pub_key_path = input(
                     "Enter the path of the public key you would like to register: ")
                 #reg_pub_key = open(reg_pub_key_path, 'r')
-                tx = self.pki_register(
+                self.tx = self.pki_register(
                     client_pub_key_path, name, reg_pub_key_path)
-                self.broadcast_transaction(tx)
-                print(tx)
+                self.broadcast_transaction(self.tx)
+                print(self.tx)
             elif command[0] == 'query':
                 client_pub_key_path = input(
                     "Enter the path of your public key (generator address): ")
                 #client_pub_key = open(client_pub_key_path, 'r')
                 name = input("Enter the name you would like to query for: ")
-                tx = self.pki_query(client_pub_key_path, name)
-                self.broadcast_transaction(tx)
-                print(tx)
+                self.tx = self.pki_query(client_pub_key_path, name)
+                self.broadcast_transaction(self.tx)
+                print(self.tx)
             elif command[0] == 'validate':
                 client_pub_key_path = input(
                     "Enter the path of your public key (generator address): ")
@@ -564,10 +588,10 @@ class Client(Node):
                 val_pub_key_path = input(
                     "Enter the path of the public key you would like to validate: ")
                 #val_pub_key = open(val_pub_key_path, 'r')
-                tx = self.pki_validate(
+                self.tx = self.pki_validate(
                     client_pub_key_path, name, val_pub_key_path)
-                self.broadcast_transaction(tx)
-                print(tx)
+                self.broadcast_transaction(self.tx)
+                print(self.tx)
             elif command[0] == 'update':
                 client_pub_key_path = input(
                     "Enter the path of your public key (generator address): ")
@@ -580,14 +604,14 @@ class Client(Node):
                 new_pub_key_path = input(
                     "Enter the path of your new public key: ")
                 #new_pub_key = open(new_pub_key_path, 'r')
-                tx = self.pki_update(client_pub_key_path, name,
+                self.tx = self.pki_update(client_pub_key_path, name,
                                      old_pub_key_path, new_pub_key_path)
-                tx_2 = self.pki_revoke(client_pub_key_path, old_pub_key_path)
-                self.broadcast_transaction(tx_2)
-                self.broadcast_transaction(tx)
+                self.tx_2 = self.pki_revoke(client_pub_key_path, old_pub_key_path)
+                self.broadcast_transaction(self.tx_2)
+                self.broadcast_transaction(self.tx)
                 print("Generated two transactions:")
-                print(tx_2)
-                print(tx)
+                print(self.tx_2)
+                print(self.tx)
             elif command[0] == 'revoke':
                 client_pub_key_path = input(
                     "Enter the path of your public key (generator address): ")
@@ -595,9 +619,9 @@ class Client(Node):
                 old_pub_key_path = input(
                     "Enter the path of the public key you would like to revoke: ")
                 #old_pub_key = open(old_pub_key_path, 'r')
-                tx = self.pki_revoke(client_pub_key_path, old_pub_key_path)
-                self.broadcast_transaction(tx)
-                print(tx)
+                self.tx = self.pki_revoke(client_pub_key_path, old_pub_key_path)
+                self.broadcast_transaction(self.tx)
+                print(self.tx)
             elif command[0] == 'generate':
                 private_key, public_key = self.generate_keys()
                 print()
