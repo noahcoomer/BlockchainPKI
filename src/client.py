@@ -17,6 +17,7 @@ import errno
 import socket
 import base64
 import pickle
+import threading
 
 BUFF_SIZE = 2048
 
@@ -48,7 +49,8 @@ class Client(Node):
         '''
             Receive incoming connections
         '''
-        while True:
+        t = threading.currentThread()
+        while getattr(t, "do_run", True):
             try:
                 conn, addr = self.net.accept()
                 s = self.receive_context.wrap_socket(conn, server_side=True)
@@ -68,6 +70,9 @@ class Client(Node):
                             self.blockchain.chain.append(decoded_message)
             except socket.timeout:
                 pass
+            except socket.error:
+                pass  # allow force exits even while receiving
+        print("Client receive ended")
 
     def create_connections(self):
         '''
@@ -87,7 +92,7 @@ class Client(Node):
 
         for v in self.connections:
             addr = v.address
-            self.send_certificate(addr=[0], port=addr[1])
+            self.send_certificate(addr=addr[0], port=addr[1]+1)
 
     def send_transaction(self, val, tx):
         '''
@@ -621,6 +626,9 @@ if __name__ == '__main__':
     cli = Client()
     cli.create_connections()
     cli.blockchain = cli.update_blockchain()
-    recv = Thread(target=cli.receive)
-    recv.start()
+
+    cli.recv = Thread(target=cli.receive)
+    cli.recv.start()
     cli.command_loop()
+    cli.recv.do_run = False
+    cli.recv.join()
