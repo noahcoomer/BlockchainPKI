@@ -239,9 +239,10 @@ class Client(Node):
                     try:
                         if key == "REVOKE":
                             revoke_dict[inputs[key]["name"]] = inputs[key]["public_key"]
-                        if name == inputs[key]["name"] and name not in revoke_dict:
+                        if name == inputs[key]["name"] and name not in revoke_dict.keys():
                             public_key = inputs[key]["public_key"]
-                    except:
+                    except Exception as e:
+                        print(e)
                         continue
                 if public_key:
                     break
@@ -341,6 +342,7 @@ class Client(Node):
         if not old_key:
             print('This old public key is not formatted correctly')
             return -1
+
         # verify the new_public_key
         new_key = self.verify_public_key(open(new_public_key, 'r'))
         if not new_key:
