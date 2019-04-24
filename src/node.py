@@ -99,10 +99,10 @@ class Node(ABC):
                 DATA = bytearray()
                 conn, addr = self.ca_net.accept()
                 with conn:
-                    data = conn.recv()
+                    data = conn.recv(1024)
                     while data:
                         DATA += data
-                        data = conn.recv()
+                        data = conn.recv(1024)
                 self.save_new_certfile(DATA)
             except socket.timeout:
                 pass
@@ -145,12 +145,13 @@ class Node(ABC):
         certfile = open(self.certfile, 'rb').read()
         print("Read certfile. Attempting to send to %s:%d" % (addr, port))
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            print(addr, port)
             try:
                 s.connect((addr, port))
-                # Alert receiver that you want to send a certificate
-                s.send(b'/cert')
+                # Alert receiver that you want to send a certificate)
                 s.sendall(certfile)  # Send the certificate
             except OSError as e:
+                print("Error in send_certificate: ", end='')
                 print(e)
             except socket.timeout as e:
                 print(e)
@@ -179,7 +180,8 @@ class Node(ABC):
                 p = os.path.join(self.capath, p)
                 content = open(p, 'rb').read()
                 if content == data:
-                    print("This certificate already exists at %s" % p)
+                    print(
+                        "This certificate already exists at %s. No need to save it again." % p)
                     return
         with open(path, 'wb') as f:
             f.write(data)
@@ -191,4 +193,5 @@ class Node(ABC):
         if self.net != None:
             self.ca_net_thread.do_run = False  # tell thread to stop
             self.ca_net_thread.join()  # wait for a clean return
+            self.ca_net.close()  # close the ca net
             self.net.close()  # close the main net socket
