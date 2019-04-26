@@ -40,6 +40,7 @@ def create_blockchain():
         #print(blockchain)
         blockC = vl.update_blockchain()
         print("\nLOAD FILE!\nBlockchain's length = ", len(blockC.chain))
+        print("The last_block of the Blockchain: ")
         print(blockC.last_block)
 
         # Test update_blockchain() in client
