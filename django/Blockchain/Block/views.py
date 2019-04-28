@@ -9,9 +9,12 @@ from django.http import JsonResponse
 import json
 
 # Create your views here.
+@csrf_exempt
 def index(request):
 
     if request.method == 'POST':
+
+        print("Hit the post method")
         form = BlockForm(request.POST)
         form.save()
 
@@ -33,11 +36,15 @@ def BlockView(request):
     hashVal = ""
     context = {"Block" : "Test"}
 
+
     if request.method == 'POST':
+        form = BlockForm(request.POST)
+        form.save()
         block = request.POST.get("block")
         hashVal = request.POST.get("hash")
         context = {"Block" : "{0},{1}".format(block,hashVal)}
-    return JsonResponse(context)
+
+    return render(request, 'Block_Templates/block.html', context)
 
 def TransactionView(request):
     return JsonResponse(context)

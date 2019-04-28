@@ -8,12 +8,12 @@ def addBlock():
     blockInput = input("Enter block ID: \n")
     hashInput = input("Enter hash:  \n")
     p = {
-        "block":"{0}".format(blockInput),
-        "hash":"{0}".format(hashInput),
+        "header":"{0}".format(blockInput),
+        "hashValue":"{0}".format(hashInput),
          }
-    r = requests.post("http://127.0.0.1:8000/block", data=p)
-    data = r.json()
-    print(data)
+    r = requests.post("http://127.0.0.1:8000/", data=p)
+    #data = r.json()
+    #print(data)
 
     return
 
