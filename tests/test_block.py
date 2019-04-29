@@ -8,12 +8,16 @@ from block import Block
 from validator import Validator
 from transaction import Transaction
 
+import requests
+import json
+from django.views.decorators.csrf import csrf_exempt
+
 def new_transaction(input, output):
-    ''' 
+    '''
     Every time this function is run the transaction + block hashes will changed because of the
     time_stamp variable, which always change
 
-    For testing purposes => need to comment out the time_stamp var 
+    For testing purposes => need to comment out the time_stamp var
     in Transaction class + Block class
     '''
     transactions = Transaction(
@@ -30,6 +34,10 @@ def new_transaction(input, output):
     return pickle.dumps(transactions)
 
 
+# def new_block(output, vl):
+    #vl = Validator()
+#@csrf_exempt is required for making post requests
+@csrf_exempt
 def new_block(output, vl):
     #vl = Validator()
     for i in range(1, 10):
@@ -42,13 +50,20 @@ def new_block(output, vl):
     for t in bl.sha256_txs:
         print(t)
     print("\nMerkel root of the block is ", bl.merkle_root)
-    bl_hash = bl.hash
-    print("Hash of the previous block is ", bl.previous_hash)
-    print("HASH OF NEW BLOCK ", bl_hash)
+    print("Hash of the block is ", bl.hash)
     
-    #print("Block string: ", bl.__str__())
-    #print(vl.blockchain.chain[0])
-    test_block_hash(bl_hash, bl)
+    # Format block to be sent to django
+    data = {
+        "header":"Block Header X",
+        "hashValue":"{0}".format(bl.hash),
+         }
+    try:     
+        # Create new block and post to django
+        requests.post("http://127.0.0.1:8000/", data=data)
+    except:
+        print("\n***********ERROR************")
+        print("ConnectionRefusedError: [Errno 111] Connection refused\n")
+        
     test_verification(vl, bl)
     
     return bl
