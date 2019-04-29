@@ -21,7 +21,7 @@ BUFF_SIZE = 2048
 
 class Validator(Node):
     def __init__(self, hostname=None, addr="0.0.0.0", port=4848, bind=True, capath="~/.BlockchainPKI/validators/",
-                 certfile="~/.BlockchainPKI/rootCA.pem", keyfile="~/.BlockchainPKI/rootCA.key", id = 0):
+                 certfile="~/.BlockchainPKI/rootCA.pem", keyfile="~/.BlockchainPKI/rootCA.key", id = 0, vote="no"):
         '''
             Initialize a Validator
 
@@ -201,7 +201,7 @@ class Validator(Node):
                         self.create_block(self.mempool[:10], last)
                 elif type(decoded_message) == Block:
                     print("Call verification/consensus function to vote on Block")
-                    round_change(bg)
+                    round_change(decoded_message)
                 else:
                     print("Data received was not of type Transaction or Block, but of type %s: \n%s\n" % (
                         type(decoded_message), decoded_message))
@@ -282,12 +282,26 @@ class Validator(Node):
                 return False
         return True
 
+    
+    def count_votes(self, block_generator, vote_yes, vote_no):
+        if vote_yes > vote_no:
+            self.add_block
+            return True
+        else:
+            print("the majority has decided to not add the block")
+        return False
 
-    #this function chooses the round leader base on the formula round_num % num_nodes 
-    def leader_selection(self, round_num)
+    def get_reply(self, vote):
+        if vote:
+            print("The block has been validated and has been added to the chain")
+        else:
+            print("The block is not invalid, and is not being added to the chain")
+        
+
+    #this function chooses the round leader based on the formula round_num % num_nodes 
+    def leader_selection(self, round_num):
         # v = round # and n = validator nodes 
         # v % n = new leader
-        round_num = self.round_num
         num_nodes = 0
         block_generator_id = 0
         for validator in self.connections:
@@ -297,42 +311,64 @@ class Validator(Node):
             if validator.id == block_generator_id: 
                 block_generator = validator
         return block_generator #this returns the validator with the id number of round_num % num_nodes
-
-    
+            
     
     #this function checks whether a round neeeds to restart 
-    def round_change(self, leader):
+    def round_change(self, decoded_message):
         time_out = False
         invalid_block = False
         switch_round = False
         round_num = 0
-        # time out can happen in prepared state and the commited state
+        vote_yes = 0
+        vote_no = 0
+        bg = Validator()
+        
+        # time out can happen in prepared state and the committed state
         # invalid_block can happen in the prepared state
         # new round can start when time out, invalid_block, or reply happen, and it must broadcast to other validators that round change is happening 
         while switch_round == False:
-
-            # commit stage
-            # at this stage check for timeout and invalid block
+            bg = bg.leader_selection(round_num)
+            last = None
+            # proposed stage 
+            current_block = self.create_block(self.first, self.last)
+            round_num += 1  
             
-            #finalize leader count  
-            if switch_round:
-                break
-            round_num = round_num + 1  
-            
-        while switch_round:
-            # we need to pick a new round leader and 
-            current_bg = leader_selection(round_num)
-            
-        pass
+            # precommit stage  
+            self.broadcast(decoded_message)
+            round_num += 1
 
+            # commit/vote stage
+            # we want to validate the block here
+            start_time = int(time.time()) 
+            for validator in self.connections:
+                if bg.verify_txs(decoded_message) == True:
+                    vote_yes += 1
+                else:
+                    vote_no += 1
 
+            end_time = int(time.time())
+
+            if (end_time - start_time) > 10:
+                print("cannot verify block")
+                switch_round = True
+            
+
+            if switch_round == True:
+               bg.round_change(decoded_message)
+            else:
+                round_num += 1
+                #finalization stage
+                # leader counts the vote 
+                vote = bg.count_votes(bg, vote_yes, vote_no)
+                reply = bg.get_reply(vote)
+                round_num += 1
+            return reply
 
 
 if __name__ == "__main__":
     port = int(input("Enter a port number: "))
     val = Validator(hostname="localhost", port=port)
     marshal = Validator(hostname="home.marshalh.com", port=8080, bind=False)
-
     try:
         while True:
             tx = Transaction(inputs=0)
