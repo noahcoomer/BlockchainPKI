@@ -1,6 +1,3 @@
-from random import choice
-from string import ascii_uppercase, ascii_lowercase, digits
-
 from node import Node
 from block import Block
 from blockchain import Blockchain
@@ -29,26 +26,21 @@ class Validator(Node):
             :param str certfile: The path to the CA
             :param str keyfile: The path to the private key
         '''
-        super().__init__(hostname=hostname, addr=addr, port=port, bind=bind, capath=capath)
+        super().__init__(hostname=hostname, addr=addr, port=port,
+                         bind=bind, capath=capath, certfile=certfile, keyfile=keyfile)
 
         # Buffer to store incoming transactions
         self.mempool = list()
-        self.blockchain = Blockchain() #list()
+        self.blockchain = Blockchain()
+        # self.blockchain.create_genesis_block(). This should only be run on first Validator.
         self.block = Block()
+
         # Buffer to store connection objects
         self.connections = list()
-        # Buffer to store client connection objects
         self.client_connections = list()
 
-        self.certfile = certfile.replace('~', os.environ['HOME'])
-        self.keyfile = keyfile.replace('~', os.environ['HOME'])
-
-        self.receive_context = ssl.create_default_context(
-            ssl.Purpose.CLIENT_AUTH)
-        self.receive_context.load_cert_chain(self.certfile, self.keyfile)
-        self.first = 0 # First index of the new sent tx mempool
+        self.first = 0  # First index of the new sent tx mempool
         self.last = 0   # Last index of the new sent tx mempool
-        
 
     def create_connections(self):
         '''
@@ -66,43 +58,13 @@ class Validator(Node):
                 self.connections.append(v)
         f.close()
 
-    def save_new_certfile(self, data):
-        '''
-            Saves a new certificate that was received from a Validator
-
-            :param bytearray data: The certificate file
-        '''
-        def newfilename(namelength): return ''.join(
-            choice(ascii_uppercase + ascii_lowercase + digits) for _ in range(namelength))
-
-        # Create a random filename of length 15
-        filename = newfilename(15)
-        path = os.path.join(
-            self.capath, "%s.pem" % filename)
-
-        # Make sure a file doesn't already exist with that name. If it does, make a new name.
-        while os.path.exists(path):
-            path = os.path.join(self.capath, "%s.pem" % newfilename(15))
-
-        # Save the certificate and remake the context with the new certificate included
-        for p in os.listdir(self.capath):
-            if p.endswith('.pem'):
-                p = os.path.join(self.capath, p)
-                content = open(p, 'rb').read()
-                if content == data:
-                    print("This certificate already exists at %s" % p)
-                    return
-        with open(path, 'wb') as f:
-            f.write(data)
-        print("New CA added at %s" % path)
-        self.load_other_ca(self.capath)
-        print("Reloaded Validator CAs")
-
     def message(self, v, msg):
         '''
             Send a message to another Validator
+
             :param Validator v: receiver of the message
             :param msg: the message to send
+
             v's net should be initialized and listening for incoming connections,
             probably bound to listen for all connections (addr="0.0.0.0").
             msg must be an instance of str or bytes.
@@ -114,6 +76,10 @@ class Validator(Node):
                 msg = msg.encode()  # encode the msg to binary
             elif isinstance(msg, Transaction) or isinstance(msg, Block):
                 msg = pickle.dumps(msg)
+            else:
+                raise TypeError(
+                    "Only Transaction, Block, or str types are allowed (not %s)" % type(msg))
+
             print("Attempting to send to %s:%s" % v.address)
             secure_conn = self.context.wrap_socket(
                 socket.socket(socket.AF_INET, socket.SOCK_STREAM), server_hostname=v.hostname)
@@ -189,8 +155,6 @@ class Validator(Node):
 
                 # Deserialize the entire object when data reception has ended
                 decoded_message = pickle.loads(DATA)
-                # print("Received data from %s:%d: %s" %
-                #       (addr[0], addr[1], decoded_message))
                 if type(decoded_message) == Transaction:
                     # Add transaction to the pool
                     self.add_transaction(decoded_message)
@@ -202,23 +166,20 @@ class Validator(Node):
                     # Probably need to add a leader flag here
                     if (end_time - start_time) >= 10:
                         start_time = int(time.time())
-                        last = None
                         print("Call Round Robin to chose the leader")
                         self.create_block(self.first, self.last)
                     elif len(self.mempool) >= 3:
                         start_time = int(time.time())
-                        last = None
                         blk = self.create_block(0, 3)
                         self.blockchain.chain.append(blk)
                         self.broadcast(blk)
                         self.mempool = list()
                 elif type(decoded_message) == Block:
-                    #print("Call verification/consensus function to vote on Block")
                     # If we are receiving an old block, we know we have received a client connection
                     if decoded_message.id <= self.blockchain.last_block.id:
                         h_name = socket.gethostbyaddr(addr[0])[0]
-                        c = client.Client(hostname=h_name, addr=addr[0], port=4848, bind=False)
-                        #self.client_connections.append((addr[0], 4848))
+                        c = client.Client(
+                            hostname=h_name, addr=addr[0], port=4848, bind=False)
                         self.connections.append(c)
                         # Send the chain from the id onwards
                         for blk in self.blockchain.chain[decoded_message.id:]:
@@ -245,7 +206,6 @@ class Validator(Node):
                 tx.status = "Open"
                 self.mempool.append(tx)
 
-
     def create_block(self, first, last):
         block_tx_pool = []
         for tx in range(first, last):
@@ -263,34 +223,12 @@ class Validator(Node):
         )
         return self.block
 
-
-    # Add block to the blockchain
     def add_block(self):
+        '''
+            Add block to the blockchain
+        '''
         self.first = self.last + 1
         self.blockchain.add_block(self.block, self.block.compute_hash())
-    
-
-    def send_certificate(self, addr, port):
-        '''
-            Sends the certificate to addr:port through 
-            standard, unencrypted TCP
-
-            :param str addr: the ipv4 address to send to
-            :param int port: the port number to send to
-        '''
-        certfile = open(self.certfile, 'rb').read()
-        print("Read certfile. Attempting to send to %s:%d" % (addr, port))
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-            try:
-                s.connect((addr, port))
-                # Alert receiver that you want to send a certificate
-                s.send(b'/cert')
-                s.sendall(certfile)  # Send the certificate
-            except OSError as e:
-                print(e)
-            except socket.timeout as e:
-                print(e)
-
 
     def verify_txs(self, block):
         '''
@@ -299,7 +237,6 @@ class Validator(Node):
             param: Block block: the new generated block sent from block generator
         '''
         for tx in block.transactions:
-            #tx = str(tx)
             if tx not in self.mempool:
                 return False
         return True
@@ -308,9 +245,9 @@ class Validator(Node):
 if __name__ == "__main__":
     port = int(input("Enter a port number: "))
     val = Validator(hostname="localhost", port=port)
-    
+
     # THIS COMMAND SHOULD ONLY BE EXECUTED ON THE VERY FIRST VALIDATOR TO GO ACTIVE
-    #val.blockchain.create_genesis_block()
+    # val.blockchain.create_genesis_block()
     # marshal = Validator(hostname="home.marshalh.com", port=8080, bind=False)
 
     try:
