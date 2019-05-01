@@ -48,7 +48,7 @@ class Validator(Node):
             Create the connection objects from the validators info file and store them as a triple
             arr[0] = hostname, arr[1] = ip, int(arr[2]) = port
         '''
-        f = open('../validators.txt', 'r')
+        f = open('../validators_temp.txt', 'r')
         for line in f:
             arr = line.split(' ')
             if self.hostname == arr[0] and self.address == (arr[1], int(arr[2])):
@@ -58,6 +58,11 @@ class Validator(Node):
                     hostname=arr[0], addr=arr[1], port=int(arr[2]), bind=False)
                 self.connections.append(v)
         f.close()
+
+        # Send each validator the CA
+        for v in self.connections:
+            addr = v.address
+            self.send_certificate(addr=[0], port=addr[1]+1)
 
     def message(self, v, msg):
         '''
@@ -107,35 +112,17 @@ class Validator(Node):
         for conn in self.connections:
             self.message(conn, tx)
 
-    def receive(self, mode='secure'):
+    def receive(self):
         '''
             Receive thread; handles incoming transactions
             Add the incoming transaction into the pool. If after 10 seconds
             the number of transactions is 10 then call the Round Robin to chose
             Block Generator (Leader)
-
-            :param: str mode: whether or not the connection is encrypted ('secure' or None).
-            mode=None specifies the connection should not be encrypted.
         '''
         try:
             conn, addr = self.net.accept()
             print("Connection from %s:%d" % (addr[0], addr[1]))
-            if mode is 'secure':
-                s = self.receive_context.wrap_socket(conn, server_side=True)
-            else:
-                warn = input(
-                    "Warning: Are you sure you want to allow insecure connections? (y/n)")
-                warn = warn.strip().lower()
-                if warn == 'y':
-                    mode = 'insecure'
-                    s = conn
-                elif warn == 'n':
-                    print("Setting mode=secure")
-                    mode = 'secure'
-                    s = self.receive_context.wrap_socket(
-                        conn, server_side=True)
-                else:
-                    raise ValueError("Answer must be either (y/n)")
+            s = self.receive_context.wrap_socket(conn, server_side=True)
 
             DATA = bytearray()  # used to store the incoming data
             with s:
@@ -147,12 +134,6 @@ class Validator(Node):
                     # (until the client sends empty data)
                     DATA += data
                     data = s.recv(BUFF_SIZE)
-
-                if b'/cert' in DATA:
-                    # Validator sent their certificate
-                    DATA = DATA[5:]  # Remove flag
-                    self.save_new_certfile(data=DATA)
-                    return
 
                 # Deserialize the entire object when data reception has ended
                 decoded_message = pickle.loads(DATA)
