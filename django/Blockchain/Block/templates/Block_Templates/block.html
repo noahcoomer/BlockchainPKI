@@ -27,7 +27,7 @@
                       {% csrf_token %}
                         <div class="field has-addons">
                             <div class="control is-expanded">
-                                {{form.header}}
+                                {{form.height}}
                                 {{form.hashValue}}
                             </div>
                             <div class="control">
@@ -44,27 +44,33 @@
     <section class="section">
         <div class="container">
             <div class="columns">
-                <div class="column is-offset-4 is-4">
+                <div class="column is-offset-2 is-8">
                   {% for block in blocks %}
                     <div class="box">
-                        <article class="media">
                             <div class="media-left">
                                 <figure class="image is-50x50">
                                 </figure>
                             </div>
-                            <div class="media-content">
                                 <div class="content">
                                     <p>
-                                        <span class="title">{{block.header}}</span>
+                                        <b>Block Height: </b> {{ block.height }}
                                         <br>
-                                        <span class="subtitle">{{block.hashValue}}</span>
+                                        <b>Block Hash: </b> {{ block.hashValue }}
                                         <br>
+                                        <b>Previous Block Hash: </b> {{ block.previousHash }}
+                                        <br>
+                                        <b>Merkle Root: </b> {{ block.merkleRoot }}
+                                        <br>
+                                        <b>Version: </b> {{ block.version }}
+                                        <br>
+                                        <b>Timestamp: </b> {{ block.timestamp }}
+                                        <br>
+                                        <b>Transaction Counter: </b> {{ block.tCounter }}
+
                                     </p>
                                 </div>
-                            </div>
-                        </article>
                     </div>
-                    <img src="https://i.ibb.co/zmYtgcj/Down-Arrow.png" alt="Down Arrow" class="center" width="50" height="50">
+                    <img src="https://i.ibb.co/zmYtgcj/Down-Arrow.png" alt="Down Arrow" class="centered" width="50" height="50">
                   {% endfor %}
                 </div>
             </div>

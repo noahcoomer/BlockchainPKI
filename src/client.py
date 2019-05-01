@@ -66,6 +66,11 @@ class Client(Node):
                     if type(decoded_message) == Block:
                         if decoded_message.id > self.blockchain.last_block.id:
                             self.blockchain.chain.append(decoded_message)
+                            block_path = expanduser("~")
+                            block_path = os.path.join(block_path, ".BlockchainPKI/chain/")
+                            outfile = open(block_path + "block-" + str(decoded_message.id) + ".blk", 'wb')
+                            with outfile:
+                                pickle.dump(decoded_message, outfile)
             except socket.timeout:
                 pass
 
@@ -74,7 +79,7 @@ class Client(Node):
             Create the connection objects from the validators info file and store them as a triple
             arr[0] = hostname, arr[1] = ip, int(arr[2]) = port
         '''
-        f = open('../validators_temp.txt', 'r')
+        f = open('./validators_temp.txt', 'r')
         for line in f:
             arr = line.split(' ')
             if self.hostname == arr[0] and self.address == (arr[1], int(arr[2])):
@@ -131,11 +136,18 @@ class Client(Node):
         if os.path.exists(block_path):
             print("Loading local blockchain files...")
             # Need to implement this
+            chain = Blockchain()
+            outfile = open(block_path + "block-" + str(chain.last_block.id) + ".blk", 'wb')
+            with outfile:
+                pickle.dump(chain.last_block, outfile)
         else:
             # Else make the block path and initialize a chain
             # Uncomment next line when serialization is finished
             # os.path.mkdir(block_path)
             chain = Blockchain()
+            outfile = open(block_path + "block-" + str(chain.last_block.id) + ".blk", 'wb')
+            with outfile:
+                pickle.dump(chain.last_block, outfile)
         # Broadcast the last block of our current chain to let the network know we need blocks after this point
         # Uncomment next line before going live
         self.broadcast_transaction(chain.last_block)

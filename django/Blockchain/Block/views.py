@@ -1,16 +1,32 @@
 from django.shortcuts import render
 import requests
-from .models import Block
+#rom .models import Block
 from .forms import BlockForm
 from django.views.decorators.csrf import csrf_exempt
 from django.http import JsonResponse
+from os.path import expanduser
 
+from .block import Block
 
 import json
+import os
+import pickle
 
 # Create your views here.
 @csrf_exempt
 def index(request):
+
+    block_path = expanduser("~")
+    block_path = os.path.join(block_path, ".BlockchainPKI/chain/")
+
+    blx = []
+
+    for filename in os.listdir(block_path):
+        if filename.endswith(".blk"):
+            f = open(block_path + filename, 'rb')
+            blx.append(pickle.load(f))
+
+    print(blx)
 
     if request.method == 'POST':
 
@@ -20,7 +36,7 @@ def index(request):
 
     form = BlockForm()
 
-    blocks = Block.objects.all()
+    blocks = []
 
     context = {
         'blocks' : blocks,
