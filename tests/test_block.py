@@ -44,11 +44,11 @@ def new_block():
         print(t)
     print("\nMerkel root of the block is ", bl.merkle_root)
     print("Hash of the block is ", bl.hash)
-    
+
     # Format block to be sent to django
     data = {
-        "header":"Block Header X",
-        "hashValue":"{0}".format(bl.hash),
+        "header":"{0}".format(bl.merkle_root),
+        "hashValue":"{0}".format(bl.hash)
          }
     # Create new block and post to django
     requests.post("http://127.0.0.1:8000/", data=data)
