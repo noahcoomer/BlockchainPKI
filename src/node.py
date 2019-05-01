@@ -131,7 +131,7 @@ class Node(ABC):
                 abspath = os.path.join(capath, path)
                 self.context.load_verify_locations(abspath)
 
-    def send_certificate(self, addr, port):
+    def send_certificate(self, addr, port=None):
         '''
             Sends the certificate to addr:port through 
             standard, unencrypted TCP
@@ -145,13 +145,13 @@ class Node(ABC):
         certfile = open(self.certfile, 'rb').read()
         print("Read certfile. Attempting to send to %s:%d" % (addr, port))
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-            print(addr, port)
             try:
                 s.connect((addr, port))
                 # Alert receiver that you want to send a certificate)
                 s.sendall(certfile)  # Send the certificate
+                print("Certificate received by %s:%d" % (addr, port))
             except OSError as e:
-                print("Error in send_certificate: ", end='')
+                print("Sending certificate failed due to: ", end='')
                 print(e)
             except socket.timeout as e:
                 print(e)

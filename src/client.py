@@ -72,17 +72,16 @@ class Client(Node):
                         DATA += data
                         data = s.recv(BUFF_SIZE)
 
-                    decoded_message = pickle.loads(DATA)
-                    if type(decoded_message) == Block:
-                        if decoded_message.id > self.blockchain.last_block.id:
-                            # Validate that the sent transaction is in the block sent back from validator?
-                            if self.validate_transaction_in_block(decoded_message) == True:
-                                # If TRUE => Use update_blockchain(block) method to add the block to the blockchain
-                                self.update_blockchain(decoded_message)
-                            else:
-                                print(
-                                    "Transaction is not in the block! Block might be compromised!!!")
-
+                decoded_message = pickle.loads(DATA)
+                if type(decoded_message) == Block:
+                    if decoded_message.id > self.blockchain.last_block.id:
+                        # Validate that the sent transaction is in the block sent back from validator?
+                        if self.validate_transaction_in_block(decoded_message) == True:
+                            # If TRUE => Use update_blockchain(block) method to add the block to the blockchain
+                            self.update_blockchain(decoded_message)
+                        else:
+                            print(
+                                "Transaction is not in the block! Block might be compromised!!!")
             except socket.timeout:
                 pass
 
@@ -170,7 +169,7 @@ class Client(Node):
                     print(e)
         else:
             raise Exception(
-                "The validator must be initialized and listening for connections")
+                "The net must be initialized in order to send transactions.")
 
     def broadcast_transaction(self, tx):
         '''
