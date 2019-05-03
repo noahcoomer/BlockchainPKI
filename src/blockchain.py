@@ -65,13 +65,13 @@ class Blockchain:
         genesis_block = Block(
             version=0.1,
             id=0,
-            transactions=[tx_1, tx_2], #''', tx_3'''
+            transactions=[tx_1, tx_2],  # ''', tx_3'''
             previous_hash="",
             block_generator_address="",
             block_generation_proof="",
             nonce=0,
             status="Confirmed",
-            #time_stamp=int(time.time())
+            # time_stamp=int(time.time())
         )
         self.chain.append(genesis_block)
 
