@@ -13,7 +13,7 @@ class Block:
 
         # A version number to track software protocol upgrades
         self.version = version
-        self.id = id # Block index or block height
+        self.id = id  # Block index or block height
         # Transaction pool created by validator calling add_transaction() method
         self.transactions = transactions
         # Transaction pool with hashed transactions
@@ -33,15 +33,15 @@ class Block:
         self.status = status
         # Total number of transaction included in this block => This will be used to verify the transaction from merkel root
         self.t_counter = len(self.transactions)
-        self.timestamp = int(time.time()) # Creation time of this block
-        self.hash = self.compute_hash() # The hash of the block header
-        
+        self.timestamp = int(time.time())  # Creation time of this block
+        self.hash = self.compute_hash()  # The hash of the block header
+
     def merkle_root_hash(self, transactions):
         '''
             param list: transactions: list of raw transaction
         '''
         for tx in transactions:
-            tx_hash = sha256(tx.encode()).hexdigest()
+            tx_hash = tx.compute_hash()
             self.sha256_txs.append(tx_hash)
 
         # Initialize merkel root when the block is empty (no transaction)
@@ -85,7 +85,7 @@ class Block:
         return hash_return.hexdigest()[::-1]
 
     def compute_hash(self):
-        block_info = str(self)
+        block_info = str(pickle.dumps(self))
         hash_256 = sha256(block_info.encode()).hexdigest()
         return hash_256
 
@@ -93,5 +93,9 @@ class Block:
         return self.compute_hash() == other.compute_hash()
 
     def __str__(self):
-        bit_str = str(pickle.dumps(self))
-        return bit_str
+        classname = self.__class__.__name__
+        s = "<%s>\n" % classname
+        for attr, value in self.__dict__.items():
+            s += "\t --%s: %s\n" % (attr, value or "None")
+        s += "</%s>" % classname
+        return s

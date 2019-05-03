@@ -17,7 +17,7 @@ class Transaction:
         self.lock_time = lock_time
         self.time_stamp = int(time.time())  # transaction generation time
         self.transaction_id = self.compute_hash()
-        self.status = "OPEN"  # Open/Pending/Complete
+        self.status = "Open"  # Open/Pending/Complete
 
     def admin_tx(self, round_change, leader_selection):
         if leader_selection == True:
@@ -40,9 +40,9 @@ class Transaction:
         return self.compute_hash() == other.compute_hash()
 
     def __str__(self):
-        s = "<Transaction: "
+        classname = self.__class__.__name__
+        s = "<%s>\n" % classname
         for attr, value in self.__dict__.items():
-            s += "%s=%s, " % (attr, value or "None")
-        s = s[:-2].strip()
-        s += ">"
+            s += "\t --%s: %s\n" % (attr, value or "None")
+        s += "</%s>" % classname
         return s

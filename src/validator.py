@@ -1,10 +1,8 @@
-from random import choice
-from string import ascii_uppercase, ascii_lowercase, digits
-
 from node import Node
 from block import Block
 from blockchain import Blockchain
 from transaction import Transaction
+import client
 
 import os
 import ssl
@@ -28,72 +26,60 @@ class Validator(Node):
             :param str certfile: The path to the CA
             :param str keyfile: The path to the private key
         '''
-        super().__init__(hostname=hostname, addr=addr, port=port, bind=bind, capath=capath)
+        super().__init__(hostname=hostname, addr=addr, port=port,
+                         bind=bind, capath=capath, certfile=certfile, keyfile=keyfile)
 
         # Buffer to store incoming transactions
         self.mempool = list()
-        self.blockchain = list()
+        self.blockchain = Blockchain()
+        # self.blockchain.create_genesis_block(). This should only be run on first Validator.
+        self.block = Block()
+
         # Buffer to store connection objects
         self.connections = list()
+        self.client_connections = list()
 
-        self.certfile = certfile.replace('~', os.environ['HOME'])
-        self.keyfile = keyfile.replace('~', os.environ['HOME'])
-
-        self.receive_context = ssl.create_default_context(
-            ssl.Purpose.CLIENT_AUTH)
-        self.receive_context.load_cert_chain(self.certfile, self.keyfile)
+        self.first = 0  # First index of the new sent tx mempool
+        self.last = 0   # Last index of the new sent tx mempool
 
     def create_connections(self):
-        pass
-
-    def save_new_certfile(self, data):
         '''
-            Saves a new certificate that was received from a Validator
-
-            :param bytearray data: The certificate file
+            Create the connection objects from the validators info file and store them as a triple
+            arr[0] = hostname, arr[1] = ip, int(arr[2]) = port
         '''
-        newfilename = lambda namelength: ''.join(
-            choice(ascii_uppercase + ascii_lowercase + digits) for _ in range(namelength))
-
-        # Create a random filename of length 15
-        filename = newfilename(15)
-        path = os.path.join(
-            self.capath, "%s.pem" % filename)
-
-        # Make sure a file doesn't already exist with that name. If it does, make a new name.
-        while os.path.exists(path):
-            path = os.path.join(self.capath, "%s.pem" % newfilename(15))
-
-        # Save the certificate and remake the context with the new certificate included
-        for p in os.listdir(self.capath):
-            if p.endswith('.pem'):
-                p = os.path.join(self.capath, p)
-                content = open(p, 'rb').read()
-                if content == data:
-                    print("This certificate already exists at %s" % p)
-                    return
-        with open(path, 'wb') as f:
-            f.write(data)
-        print("New CA added at %s" % path)
-        self.load_other_ca(self.capath)
-        print("Reloaded Validator CAs")
+        f = open('../validators.txt', 'r')
+        for line in f:
+            arr = line.split(' ')
+            if self.hostname == arr[0] and self.address == (arr[1], int(arr[2])):
+                continue
+            else:
+                v = Validator(
+                    hostname=arr[0], addr=arr[1], port=int(arr[2]), bind=False)
+                self.connections.append(v)
+        f.close()
 
     def message(self, v, msg):
         '''
             Send a message to another Validator
+
             :param Validator v: receiver of the message
             :param msg: the message to send
+
             v's net should be initialized and listening for incoming connections,
             probably bound to listen for all connections (addr="0.0.0.0").
             msg must be an instance of str or bytes.
         '''
-        if self.net:
+        if self.net and self != v:
             # Connect to v's inbound net using self's outbound net
             address = v.address
             if isinstance(msg, str):
                 msg = msg.encode()  # encode the msg to binary
-            elif isinstance(msg, Transaction):
-                msg = pickle.dumps(Transaction)
+            elif isinstance(msg, Transaction) or isinstance(msg, Block):
+                msg = pickle.dumps(msg)
+            else:
+                raise TypeError(
+                    "Only Transaction, Block, or str types are allowed (not %s)" % type(msg))
+
             print("Attempting to send to %s:%s" % v.address)
             secure_conn = self.context.wrap_socket(
                 socket.socket(socket.AF_INET, socket.SOCK_STREAM), server_hostname=v.hostname)
@@ -110,18 +96,15 @@ class Validator(Node):
             finally:
                 secure_conn.close()
         else:
-            raise Exception("The net must be initialized and listening for connections")
+            raise Exception(
+                "The net must be initialized and listening for connections")
 
     def broadcast(self, tx):
         '''
             Broadcast a message to every other validator that is connected to this node
         '''
-        i = 0
-        for addr in self.connections:
-            ip, port = addr
-            name = "val-" + str(i)
-            receiver = Validator(hostname=name, addr=ip, port=port)
-            self.message(receiver, tx)
+        for conn in self.connections:
+            self.message(conn, tx)
 
     def receive(self, mode='secure'):
         '''
@@ -163,40 +146,49 @@ class Validator(Node):
                     # (until the client sends empty data)
                     DATA += data
                     data = s.recv(BUFF_SIZE)
-                del data
 
                 if b'/cert' in DATA:
                     # Validator sent their certificate
                     DATA = DATA[5:]  # Remove flag
                     self.save_new_certfile(data=DATA)
                     return
-                
-                # Deserialize the entire object when data reception has ended
-                try:
-                    data = pickle.loads(DATA)
-                except pickle.UnpicklingError:
-                    # The data received most likely wasn't a Transaction
-                    data = DATA.decode()
 
-                if type(data) == Transaction:
+                # Deserialize the entire object when data reception has ended
+                decoded_message = pickle.loads(DATA)
+                if type(decoded_message) == Transaction:
                     # Add transaction to the pool
-                    self.add_transaction(data)
+                    self.add_transaction(decoded_message)
+                    print(self.mempool)
                     # broadcast to network
-                    self.broadcast(data)
+                    self.broadcast(decoded_message)
                     end_time = int(time.time())
 
                     # Probably need to add a leader flag here
                     if (end_time - start_time) >= 10:
                         start_time = int(time.time())
                         print("Call Round Robin to chose the leader")
-                        self.create_block(self.mempool)
-                    elif len(self.mempool) >= 10:
+                        self.create_block(self.first, self.last)
+                    elif len(self.mempool) >= 3:
                         start_time = int(time.time())
-                        self.create_block(self.mempool[:10])
-                elif type(data) == Block:
-                    print("Call verification/consensus function to vote on Block")
+                        blk = self.create_block(0, 3)
+                        self.blockchain.chain.append(blk)
+                        self.broadcast(blk)
+                        self.mempool = list()
+                elif type(decoded_message) == Block:
+                    # If we are receiving an old block, we know we have received a client connection
+                    if decoded_message.id <= self.blockchain.last_block.id:
+                        h_name = socket.gethostbyaddr(addr[0])[0]
+                        c = client.Client(
+                            hostname=h_name, addr=addr[0], port=4848, bind=False)
+                        self.connections.append(c)
+                        # Send the chain from the id onwards
+                        for blk in self.blockchain.chain[decoded_message.id:]:
+                            self.message(c, blk)
+                    if decoded_message.id > self.blockchain.last_block.id:
+                        self.blockchain.chain.append(decoded_message)
                 else:
-                    print("Data received was not of type Transaction or Block, but of type %s: \n%s\n" % (type(data), data))
+                    print("Data received was not of type Transaction or Block, but of type %s: \n%s\n" % (
+                        type(decoded_message), decoded_message))
         except socket.timeout:
             pass
 
@@ -210,6 +202,7 @@ class Validator(Node):
             pass
         else:
             if tx not in self.mempool:
+                self.last = self.last + 1
                 tx.status = "Open"
                 self.mempool.append(tx)
 
@@ -217,9 +210,10 @@ class Validator(Node):
         block_tx_pool = []
         for tx in range(first, last):
             block_tx_pool.append(self.mempool[tx])
-        return Block(
+
+        self.block = Block(
             version=0.1,
-            id=len("Blockchain.block_index"),
+            id=len(self.blockchain.chain),
             transactions=block_tx_pool,
             previous_hash=self.blockchain.last_block.hash,
             block_generator_address=self.address,
@@ -227,29 +221,16 @@ class Validator(Node):
             nonce=0,
             status="Proposed"
         )
-    
-    def send_certificate(self, addr, port):
-        '''
-            Sends the certificate to addr:port through 
-            standard, unencrypted TCP
+        return self.block
 
-            :param str addr: the ipv4 address to send to
-            :param int port: the port number to send to
+    def add_block(self):
         '''
-        certfile = open(self.certfile, 'rb').read()
-        print("Read certfile. Attempting to send to %s:%d" % (addr, port))
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-            try:
-                s.connect((addr, port))
-                # Alert receiver that you want to send a certificate
-                s.send(b'/cert')
-                s.sendall(certfile)  # Send the certificate
-            except OSError as e:
-                print(e)
-            except socket.timeout as e:
-                print(e)
+            Add block to the blockchain
+        '''
+        self.first = self.last + 1
+        self.blockchain.add_block(self.block, self.block.compute_hash())
 
-    def verify_txs(self, block, validators):
+    def verify_txs(self, block):
         '''
             Verify transactions 
 
@@ -259,17 +240,21 @@ class Validator(Node):
             if tx not in self.mempool:
                 return False
         return True
-        
+
+
 if __name__ == "__main__":
     port = int(input("Enter a port number: "))
-    val = Validator(port=port)
-    marshal = Validator(hostname="home.marshalh.com", port=8080, bind=False)
+    val = Validator(hostname="localhost", port=port)
+
+    # THIS COMMAND SHOULD ONLY BE EXECUTED ON THE VERY FIRST VALIDATOR TO GO ACTIVE
+    # val.blockchain.create_genesis_block()
+    # marshal = Validator(hostname="home.marshalh.com", port=8080, bind=False)
 
     try:
         while True:
-            # Sending a Transaction
-            t = Transaction()
-            val.message(marshal, t)
-            time.sleep(1)
+            # tx = Transaction(inputs=0)
+            # val.message(marshal, tx)
+            # time.sleep(1)
+            val.receive()
     except KeyboardInterrupt:
         val.close()

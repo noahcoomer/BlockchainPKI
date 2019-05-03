@@ -1,14 +1,8 @@
 .vscode
 *.pyc
 .DS_Store
-venv
+.venv
 __pycache__
-<<<<<<< HEAD
 *.key
 *.pem
 .pytest_cache/
-=======
-rootCA.key
-rootCA.pem
-.idea/
->>>>>>> 916b05d916ef8d3338642fc811c4187715301cb1

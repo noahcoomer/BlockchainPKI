@@ -1,5 +1,6 @@
 from block import Block
 from transaction import Transaction
+
 import json
 import time
 
@@ -30,7 +31,7 @@ class Blockchain:
     def __init__(self):
         self.unconfirmed_transactions = []
         self.chain = []
-        self.create_genesis_block()
+        # self.create_genesis_block()
 
     def create_genesis_block(self):
         inputs_1 = {"REGISTER": {"name": "Noah Coomer",
@@ -45,16 +46,26 @@ class Blockchain:
         outputs_2 = {"REGISTER": {"success": True}}
         outputs_2 = json.dumps(outputs_2)
 
+        inputs_3 = {"REGISTER": {"name": "Noah_Coomer",
+                                 "public_key": open("/Users/noahcoomer/.BlockchainPKI/keys/public.pem", 'r').read()}}
+        inputs_3 = json.dumps(inputs_3)
+
+        outputs_3 = {"REGISTER": {"success": True}}
+        outputs_3 = json.dumps(outputs_3)
+
         tx_1 = Transaction(tx_generator_address=NOAH_PUBLIC_KEY,
                            inputs=inputs_1, outputs=outputs_1, lock_time=int(time.time()))
 
         tx_2 = Transaction(tx_generator_address=DUNGLE_PUBLIC_KEY,
                            inputs=inputs_1, outputs=outputs_1, lock_time=int(time.time()))
 
+        tx_3 = Transaction(tx_generator_address=NOAH_PUBLIC_KEY,
+                           inputs=inputs_3, outputs=outputs_3, lock_time=int(time.time()))
+
         genesis_block = Block(
             version=0.1,
             id=0,
-            transactions=[tx_1, tx_2],
+            transactions=[tx_1, tx_2, tx_3],
             previous_hash="",
             block_generator_address="",
             block_generation_proof="",
@@ -66,7 +77,7 @@ class Blockchain:
     # last_block() returns the last block of the chain
     @property
     def last_block(self):
-        return self.chain[-1]
+        return self.chain[-1] if len(self.chain) > 0 else None
 
     # Generate a concensus_hash number based on the concensus algorithms
     # This consensus algorithm does not use proof of work

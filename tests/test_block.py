@@ -8,12 +8,16 @@ from block import Block
 from validator import Validator
 from transaction import Transaction
 
+import requests
+import json
+from django.views.decorators.csrf import csrf_exempt
+
 def new_transaction(input):
-    ''' 
+    '''
     Every time this function is run the transaction + block hashes will changed because of the
     time_stamp variable, which always change
 
-    For testing purposes => need to comment out the time_stamp var 
+    For testing purposes => need to comment out the time_stamp var
     in Transaction class + Block class
     '''
     transactions = Transaction(
@@ -26,6 +30,8 @@ def new_transaction(input):
     )
     return pickle.dumps(transactions)
 
+#@csrf_exempt is required for making post requests
+@csrf_exempt
 def new_block():
     vl = Validator()
     for i in range(1, 10):
@@ -38,6 +44,22 @@ def new_block():
         print(t)
     print("\nMerkel root of the block is ", bl.merkle_root)
     print("Hash of the block is ", bl.hash)
+    
+    # Format block to be sent to django
+    data = {
+        "header":"Block Header X",
+        "hashValue":"{0}".format(bl.hash),
+         }
+    # Create new block and post to django
+    requests.post("http://127.0.0.1:8000/", data=data)
+
+    test_verification(vl, bl)
+        
+
+def test_verification(validator, block):
+    print("\nSend block to validator for verification\nReturn: ", end="")
+    print(validator.verify_txs(block))
+
 
 def main():
     new_block()
