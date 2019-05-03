@@ -126,7 +126,8 @@ class Node(ABC):
             return
         elif len(os.listdir(capath)) == 0:
             # The capath directory contains no files
-            raise FileNotFoundError("Directory %s is empty." % capath)
+            # This node should receive CAs eventually
+            return
         else:
             # Load all the CAs
             cafiles = [path for path in os.listdir(
@@ -134,6 +135,7 @@ class Node(ABC):
             for path in cafiles:
                 abspath = os.path.join(capath, path)
                 self.context.load_verify_locations(abspath)
+                print("Loaded %s into context" % abspath)
 
     def send_certificate(self, addr, port=None):
         '''
@@ -199,3 +201,11 @@ class Node(ABC):
             self.ca_net_thread.join()  # wait for a clean return
             self.ca_net.close()  # close the ca net
             self.net.close()  # close the main net socket
+
+    def __str__(self):
+        classname = self.__class__.__name__
+        s = "<%s>\n" % classname
+        for attr, value in self.__dict__.items():
+            s += "\t --%s: %s\n" % (attr, value or "None")
+        s += "</%s>" % classname
+        return s

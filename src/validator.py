@@ -140,8 +140,10 @@ class Validator(Node):
                 if type(decoded_message) == Transaction:
                     # Add transaction to the pool
                     self.add_transaction(decoded_message)
-                    print(self.mempool)
-                    # broadcast to network
+                    for t in self.mempool:
+                        print(t)
+
+                    # Broadcast to network
                     self.broadcast(decoded_message)
                     end_time = int(time.time())
 
@@ -192,7 +194,7 @@ class Validator(Node):
         block_tx_pool = []
         for tx in range(first, last):
             block_tx_pool.append(self.mempool[tx])
-            #print(self.mempool[tx])
+            # print(self.mempool[tx])
         #print("len = ", len(block_tx_pool))
         #print("self.blockchain.last_block.hash = ", self.blockchain.last_block.hash)
         self.block = Block(
@@ -212,32 +214,30 @@ class Validator(Node):
         self.first = self.last + 1
         self.blockchain.add_block(self.block, self.block.hash)
         self.update_blockchain()
-            
-            
+
     def update_blockchain(self):
         '''
             pickle.dump()
             pickle.load()
-            
+
             Update blockchain to be current
         '''
         try:
-            with open("blockchain.txt", "wb") as file2: 
-                pickle.dump(self.blockchain, file2) # Write the blockchain to the file
+            with open("blockchain.txt", "wb") as file2:
+                # Write the blockchain to the file
+                pickle.dump(self.blockchain, file2)
 
             file2.close()
             print("Update Successful!")
             # After write the blockchain, read the blockchain again and return the updated version of the blockchain object
             with open("blockchain.txt", "rb") as file1:
                 bl = pickle.load(file1)
-            
+
             file1.close()
-            return bl # bl will be an object
+            return bl  # bl will be an object
 
         except FileNotFoundError:
             print("File not found. Check the path variable and filename")
-        
-
 
     def send_certificate(self, addr, port):
         '''
