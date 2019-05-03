@@ -5,7 +5,7 @@ import pickle
 
 class Transaction:
     def __init__(self, version=0.1, transaction_type=None, tx_generator_address=None,
-                 inputs=None, outputs=None, lock_time=None):
+                 inputs=None, outputs=None, lock_time=None, time_stamp=None):
         self.version = version  # specifies which rules this transaction follows
         # transaction sequence #
         self.transaction_type = transaction_type  # Admin/Regular
@@ -15,9 +15,10 @@ class Transaction:
         self.outputs = outputs  # request result
         # a unix timestamp or block number-locktime defines the earlier time that a transaction can be added
         self.lock_time = lock_time
-        self.time_stamp = int(time.time())  # transaction generation time
+        self.time_stamp = time_stamp  # transaction generation time
         self.transaction_id = self.compute_hash()
         self.status = "Open"  # Open/Pending/Complete
+        
 
     def admin_tx(self, round_change, leader_selection):
         if leader_selection == True:
@@ -32,7 +33,7 @@ class Transaction:
         pass
 
     def compute_hash(self):
-        tx_info = str(pickle.dumps(self))
+        tx_info = self.info_for_compute_hash() #str(pickle.dumps(self)) # This will call the Transaction object again; however, the timestamp will change
         hash_256 = hashlib.sha256(tx_info.encode()).hexdigest()
         return hash_256
 
@@ -46,3 +47,8 @@ class Transaction:
             s += "\t --%s: %s\n" % (attr, value or "None")
         s += "</%s>" % classname
         return s
+
+    def info_for_compute_hash(self):
+        s = "<Transaction>" + str(self.version) + str(self.time_stamp) + str(self.inputs) + str(self.outputs) + str(self.tx_generator_address ) + "</Transaction>"
+        return s
+

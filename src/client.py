@@ -2,7 +2,7 @@ from node import Node
 from block import Block
 from blockchain import Blockchain
 from transaction import Transaction
-import validator
+from hashlib import sha256
 
 from Crypto import Random
 from Crypto.PublicKey import RSA
@@ -17,13 +17,17 @@ import errno
 import socket
 import base64
 import pickle
+import threading
+import validator
 
+INCONN_THRESH = 128
+OUTCONN_THRESH = 8
 BUFF_SIZE = 2048
 
 
 class Client(Node):
-    def __init__(self, hostname=None, addr="0.0.0.0", port=4848, bind=True, capath="~/.BlockchainPKI/validators/",
-                 certfile="~/.BlockchainPKI/rootCA.pem", keyfile="~/.BlockchainPKI/rootCA.key"):
+    def __init__(self, hostname=None, addr="0.0.0.0", port=4848, capath="~/.BlockchainPKI/validators/",
+                 certfile="~/.BlockchainPKI/rootCA.pem", bind=True, keyfile="~/.BlockchainPKI/rootCA.key"):
         '''
             :param str name: A canonical name
             :param str addr: The ip address for serving inbound connections
@@ -35,6 +39,8 @@ class Client(Node):
 
         self.blockchain = Blockchain()
         self.connections = list()
+        self.tx = Transaction()
+        self.tx_2 = Transaction()
 
     def message(self, t):
         '''
@@ -46,9 +52,14 @@ class Client(Node):
 
     def receive(self):
         '''
-            Receive incoming connections
+            Receive thread; handles incoming transactions
+            Deserialized the object/block and add the block into the blockchain local file.
+
+            :param: str mode: whether or not the connection is encrypted ('secure' or None).
+            mode=None specifies the connection should not be encrypted.
         '''
-        while True:
+        t = threading.currentThread()
+        while getattr(t, "do_run", True):
             try:
                 conn, addr = self.net.accept()
                 s = self.receive_context.wrap_socket(conn, server_side=True)
@@ -61,13 +72,55 @@ class Client(Node):
                         DATA += data
                         data = s.recv(BUFF_SIZE)
 
-                    decoded_message = pickle.loads(DATA)
-                    #print(decoded_message)
-                    if type(decoded_message) == Block:
-                        if decoded_message.id > self.blockchain.last_block.id:
-                            self.blockchain.chain.append(decoded_message)
+                decoded_message = pickle.loads(DATA)
+                if type(decoded_message) == Block:
+                    if decoded_message.id > self.blockchain.last_block.id:
+                        # Validate that the sent transaction is in the block sent back from validator?
+                        if self.validate_transaction_in_block(decoded_message) == True:
+                            # If TRUE => Use update_blockchain(block) method to add the block to the blockchain
+                            self.update_blockchain(decoded_message)
+                        else:
+                            print(
+                                "Transaction is not in the block! Block might be compromised!!!")
             except socket.timeout:
                 pass
+
+    def validate_transaction_in_block(self, block):
+        '''
+            Validate if the transaction is inside the block using merkel_root
+        '''
+        transaction_hash = self.tx.compute_hash()
+        if transaction_hash in block.sha256_txs:
+            return True
+        else:
+            transaction_hash = self.tx_2.compute_hash()
+            if transaction_hash in block.sha256_txs:
+                return True
+            else:
+                return False
+
+    def update_blockchain(self, block):
+        '''
+            Update blockchain to be current
+        '''
+        try:
+            with open("blockchain.txt", "rb") as file1:
+                self.blockchain = pickle.load(file1)
+
+            self.blockchain.add_block(block, block.hash)
+
+            with open("blockchain.txt", "wb") as file2:
+                pickle.dump(self.blockchain, file2)
+
+            print("Client Updated Successfully!")
+        except:
+            print("Update Failed!")
+
+    def validate_block(self, decoded_message):
+        '''
+            Validate the block header using hash of the previous block and the merkel root to validate
+        '''
+        pass
 
     def create_connections(self):
         '''
@@ -85,12 +138,16 @@ class Client(Node):
                 self.connections.append(v)
         f.close()
 
+        for v in self.connections:
+            addr = v.address
+            self.send_certificate(addr=addr[0], port=addr[1]+1)
+
     def send_transaction(self, val, tx):
         '''
             Send a transaction to the validator network
             :param Transaction tx: The transaction to send
         '''
-        if self.net and self != val:
+        if self.net:
             # Connect to validators's inbound net using client's outbound net
             address = val.address
             # Serialize the transaction as a bytes object
@@ -112,7 +169,7 @@ class Client(Node):
                     print(e)
         else:
             raise Exception(
-                "The validator must be initialized and listening for connections")
+                "The net must be initialized in order to send transactions.")
 
     def broadcast_transaction(self, tx):
         '''
@@ -120,27 +177,6 @@ class Client(Node):
         '''
         for i in self.connections:
             self.send_transaction(i, tx)
-
-    def update_blockchain(self):
-        '''
-            Update blockchain to be current
-        '''
-        block_path = expanduser("~")
-        block_path = os.path.join(block_path, ".BlockchainPKI/chain/")
-        chain = None
-        if os.path.exists(block_path):
-            print("Loading local blockchain files...")
-            # Need to implement this
-        else:
-            # Else make the block path and initialize a chain
-            # Uncomment next line when serialization is finished
-            # os.path.mkdir(block_path)
-            chain = Blockchain()
-        # Broadcast the last block of our current chain to let the network know we need blocks after this point
-        # Uncomment next line before going live
-        self.broadcast_transaction(chain.last_block)
-        # receive until we are updated ???
-        return chain
 
     def pki_register(self, generator_public_key, name, public_key):
         '''
@@ -209,7 +245,7 @@ class Client(Node):
 
         # send the transaction and return it for std.out
         tx = Transaction(transaction_type="Standard",
-                         tx_generator_address=gen, inputs=inputs, outputs=outputs)
+                         tx_generator_address=gen, inputs=inputs, outputs=outputs, time_stamp=int(time.time()))
         # Create an entry point to the validator network that the client can connect to
 
         # self.broadcast_transaction(tx)
@@ -235,7 +271,8 @@ class Client(Node):
                 for key in inputs.keys():  # should only be 1 top level key - still O(1)
                     try:
                         if key == "REVOKE":
-                            revoke_dict[inputs[key]["name"]] = inputs[key]["public_key"]
+                            revoke_dict[inputs[key]["name"]
+                                        ] = inputs[key]["public_key"]
                         if name == inputs[key]["name"] and name not in revoke_dict:
                             public_key = inputs[key]["public_key"]
                     except:
@@ -258,7 +295,7 @@ class Client(Node):
         outputs = json.dumps(outputs)
 
         tx = Transaction(transaction_type="Standard", tx_generator_address=gen,
-                         inputs=inputs, outputs=outputs)
+                         inputs=inputs, outputs=outputs, time_stamp=int(time.time()))
 
         # self.broadcast_transaction(tx)
         return tx
@@ -323,7 +360,7 @@ class Client(Node):
         inputs = json.dumps(inputs)
         outputs = json.dumps(outputs)
         tx = Transaction(
-            transaction_type='standard', tx_generator_address=gen, inputs=inputs, outputs=outputs)
+            transaction_type='standard', tx_generator_address=gen, inputs=inputs, outputs=outputs, time_stamp=int(time.time()))
         return tx
 
     def pki_update(self, generator_public_key, name, old_public_key, new_public_key):
@@ -380,7 +417,7 @@ class Client(Node):
         inputs = json.dumps(inputs)
         outputs = json.dumps(outputs)
         tx = Transaction(
-            transaction_type='Standard', tx_generator_address=gen, inputs=inputs, outputs=outputs)
+            transaction_type='Standard', tx_generator_address=gen, inputs=inputs, outputs=outputs, time_stamp=int(time.time()))
         return tx
 
     def pki_revoke(self, generator_public_key, public_key):
@@ -438,7 +475,7 @@ class Client(Node):
         inputs = json.dumps(inputs)
         outputs = json.dumps(outputs)
         tx = Transaction(transaction_type="Standard", tx_generator_address=gen,
-                         inputs=inputs, outputs=outputs)
+                         inputs=inputs, outputs=outputs, time_stamp=int(time.time()))
         return tx
 
     def print_chain(self):
@@ -479,66 +516,68 @@ class Client(Node):
             elif command[0] == 'register':
                 client_pub_key_path = input(
                     "Enter the path of your public key (generator address): ")
-                #client_pub_key = open(client_pub_key_path, 'r')
+                # client_pub_key = open(client_pub_key_path, 'r')
                 name = input(
                     "Enter the name you would like to register to a public key: ")
                 reg_pub_key_path = input(
                     "Enter the path of the public key you would like to register: ")
-                #reg_pub_key = open(reg_pub_key_path, 'r')
-                tx = self.pki_register(
+                # reg_pub_key = open(reg_pub_key_path, 'r')
+                self.tx = self.pki_register(
                     client_pub_key_path, name, reg_pub_key_path)
-                self.broadcast_transaction(tx)
-                print(tx)
+                self.broadcast_transaction(self.tx)
+                print(self.tx)
             elif command[0] == 'query':
                 client_pub_key_path = input(
                     "Enter the path of your public key (generator address): ")
-                #client_pub_key = open(client_pub_key_path, 'r')
+                # client_pub_key = open(client_pub_key_path, 'r')
                 name = input("Enter the name you would like to query for: ")
-                tx = self.pki_query(client_pub_key_path, name)
-                self.broadcast_transaction(tx)
-                print(tx)
+                self.tx = self.pki_query(client_pub_key_path, name)
+                self.broadcast_transaction(self.tx)
+                print(self.tx)
             elif command[0] == 'validate':
                 client_pub_key_path = input(
                     "Enter the path of your public key (generator address): ")
-                #client_pub_key = open(client_pub_key_path, 'r')
+                # client_pub_key = open(client_pub_key_path, 'r')
                 name = input("Enter the name you would like to validate: ")
                 val_pub_key_path = input(
                     "Enter the path of the public key you would like to validate: ")
-                #val_pub_key = open(val_pub_key_path, 'r')
-                tx = self.pki_validate(
+                # val_pub_key = open(val_pub_key_path, 'r')
+                self.tx = self.pki_validate(
                     client_pub_key_path, name, val_pub_key_path)
-                self.broadcast_transaction(tx)
-                print(tx)
+                self.broadcast_transaction(self.tx)
+                print(self.tx)
             elif command[0] == 'update':
                 client_pub_key_path = input(
                     "Enter the path of your public key (generator address): ")
-                #client_pub_key = open(client_pub_key_path, 'r')
+                # client_pub_key = open(client_pub_key_path, 'r')
                 name = input(
                     "Enter the name you would like to associate with your updated key: ")
                 old_pub_key_path = input(
                     "Enter the path of your old public key: ")
-                #old_pub_key = open(old_pub_key_path, 'r')
+                # old_pub_key = open(old_pub_key_path, 'r')
                 new_pub_key_path = input(
                     "Enter the path of your new public key: ")
-                #new_pub_key = open(new_pub_key_path, 'r')
-                tx = self.pki_update(client_pub_key_path, name,
-                                     old_pub_key_path, new_pub_key_path)
-                tx_2 = self.pki_revoke(client_pub_key_path, old_pub_key_path)
-                self.broadcast_transaction(tx_2)
-                self.broadcast_transaction(tx)
+                # new_pub_key = open(new_pub_key_path, 'r')
+                self.tx = self.pki_update(client_pub_key_path, name,
+                                          old_pub_key_path, new_pub_key_path)
+                self.tx_2 = self.pki_revoke(
+                    client_pub_key_path, old_pub_key_path)
+                self.broadcast_transaction(self.tx_2)
+                self.broadcast_transaction(self.tx)
                 print("Generated two transactions:")
-                print(tx_2)
-                print(tx)
+                print(self.tx_2)
+                print(self.tx)
             elif command[0] == 'revoke':
                 client_pub_key_path = input(
                     "Enter the path of your public key (generator address): ")
-                #client_pub_key = open(client_pub_key_path, 'r')
+                # client_pub_key = open(client_pub_key_path, 'r')
                 old_pub_key_path = input(
                     "Enter the path of the public key you would like to revoke: ")
-                #old_pub_key = open(old_pub_key_path, 'r')
-                tx = self.pki_revoke(client_pub_key_path, old_pub_key_path)
-                self.broadcast_transaction(tx)
-                print(tx)
+                # old_pub_key = open(old_pub_key_path, 'r')
+                self.tx = self.pki_revoke(
+                    client_pub_key_path, old_pub_key_path)
+                self.broadcast_transaction(self.tx)
+                print(self.tx)
             elif command[0] == 'generate':
                 private_key, public_key = self.generate_keys()
                 print()
@@ -615,7 +654,13 @@ class Client(Node):
 if __name__ == '__main__':
     cli = Client()
     cli.create_connections()
-    cli.blockchain = cli.update_blockchain()
-    recv = Thread(target=cli.receive)
-    recv.start()
-    cli.command_loop()
+
+    try:
+        cli.recv = Thread(target=cli.receive)
+        cli.recv.start()
+        cli.command_loop()
+    except KeyboardInterrupt:
+        # Allows easy exit with cntrl-c when testing
+        cli.recv.do_run = False
+        cli.recv.join()
+        cli.close()

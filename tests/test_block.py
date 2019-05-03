@@ -12,7 +12,7 @@ import requests
 import json
 from django.views.decorators.csrf import csrf_exempt
 
-def new_transaction(input):
+def new_transaction(input, output):
     '''
     Every time this function is run the transaction + block hashes will changed because of the
     time_stamp variable, which always change
@@ -25,18 +25,25 @@ def new_transaction(input):
         transaction_type="Regular",
         tx_generator_address="123.09.02.23",
         inputs=input,
-        outputs="",
-        lock_time=12334
+        outputs=output,
+        lock_time=12334,
+        time_stamp=10
     )
+    transactions.time_stamp = 10
+    #print("input = ", transactions.inputs, "timestamp=",transactions.time_stamp)
     return pickle.dumps(transactions)
 
+
+# def new_block(output, vl):
+    #vl = Validator()
 #@csrf_exempt is required for making post requests
 @csrf_exempt
-def new_block():
-    vl = Validator()
+def new_block(output, vl):
+    #vl = Validator()
     for i in range(1, 10):
-        tx = new_transaction(i)
-        vl.add_transaction(tx)
+        tx = new_transaction(i, output)
+        decoded_message = pickle.loads(tx)
+        vl.add_transaction(decoded_message)
 
     bl = vl.create_block(0, 9)
     print("Hashes of each transaction is :")
@@ -50,11 +57,21 @@ def new_block():
         "header":"Block Header X",
         "hashValue":"{0}".format(bl.hash),
          }
-    # Create new block and post to django
-    requests.post("http://127.0.0.1:8000/", data=data)
-
-    test_verification(vl, bl)
+    try:     
+        # Create new block and post to django
+        requests.post("http://127.0.0.1:8000/", data=data)
+    except:
+        print("\n***********ERROR************")
+        print("ConnectionRefusedError: [Errno 111] Connection refused\n")
         
+    test_verification(vl, bl)
+    
+    return bl
+
+def test_block_hash(bl_hash, bl):
+    if bl_hash == bl.hash:
+        print("\nBlock's hash does not change")
+
 
 def test_verification(validator, block):
     print("\nSend block to validator for verification\nReturn: ", end="")
@@ -62,7 +79,8 @@ def test_verification(validator, block):
 
 
 def main():
-    new_block()
+    vl = Validator()
+    new_block(10,vl)
 
 if __name__ == '__main__':
     main()

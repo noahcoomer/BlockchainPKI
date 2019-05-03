@@ -1,3 +1,4 @@
+from threading import Thread
 from random import randint, choice
 from abc import ABC, abstractmethod
 from string import ascii_uppercase, ascii_lowercase, digits
@@ -6,6 +7,7 @@ import os
 import ssl
 import socket
 import errno
+import threading
 
 
 class Node(ABC):
@@ -57,6 +59,11 @@ class Node(ABC):
             self.net.settimeout(0.001)  # Blocking socket
             self.net.bind(self.address)  # Bind to address
             self.net.listen()  # Listen for connections
+
+            self.ca_net = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            self.ca_net.settimeout(0.001)
+            self.ca_net.bind((self.address[0], self.address[1]+1))
+            self.ca_net.listen()
         except socket.error as e:
             if e.errno == errno.ECONNREFUSED:
                 # Connection refused error
@@ -75,6 +82,9 @@ class Node(ABC):
             self.context.check_hostname = False
             self.load_other_ca()
 
+            self.ca_net_thread = Thread(target=self.ca_net_receive)
+            self.ca_net_thread.start()  # start receiving new CAs
+
     @abstractmethod
     def message(self):
         pass
@@ -82,6 +92,24 @@ class Node(ABC):
     @abstractmethod
     def receive(self):
         pass
+
+    def ca_net_receive(self):
+        '''
+            Receive CA certificates 
+        '''
+        t = threading.currentThread()
+        while getattr(t, "do_run", True):
+            try:
+                DATA = bytearray()
+                conn, addr = self.ca_net.accept()
+                with conn:
+                    data = conn.recv(1024)
+                    while data:
+                        DATA += data
+                        data = conn.recv(1024)
+                self.save_new_certfile(DATA)
+            except socket.timeout:
+                pass
 
     def load_other_ca(self, capath=None):
         '''
@@ -107,7 +135,7 @@ class Node(ABC):
                 abspath = os.path.join(capath, path)
                 self.context.load_verify_locations(abspath)
 
-    def send_certificate(self, addr, port):
+    def send_certificate(self, addr, port=None):
         '''
             Sends the certificate to addr:port through 
             standard, unencrypted TCP
@@ -115,15 +143,19 @@ class Node(ABC):
             :param str addr: the ipv4 address to send to
             :param int port: the port number to send to
         '''
+        if not port:
+            port = self.address[1] + 1
+
         certfile = open(self.certfile, 'rb').read()
         print("Read certfile. Attempting to send to %s:%d" % (addr, port))
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             try:
                 s.connect((addr, port))
-                # Alert receiver that you want to send a certificate
-                s.send(b'/cert')
+                # Alert receiver that you want to send a certificate)
                 s.sendall(certfile)  # Send the certificate
+                print("Certificate received by %s:%d" % (addr, port))
             except OSError as e:
+                print("Sending certificate failed due to: ", end='')
                 print(e)
             except socket.timeout as e:
                 print(e)
@@ -152,7 +184,8 @@ class Node(ABC):
                 p = os.path.join(self.capath, p)
                 content = open(p, 'rb').read()
                 if content == data:
-                    print("This certificate already exists at %s" % p)
+                    print(
+                        "This certificate already exists at %s. No need to save it again." % p)
                     return
         with open(path, 'wb') as f:
             f.write(data)
@@ -162,4 +195,7 @@ class Node(ABC):
 
     def close(self):
         if self.net != None:
-            self.net.close()
+            self.ca_net_thread.do_run = False  # tell thread to stop
+            self.ca_net_thread.join()  # wait for a clean return
+            self.ca_net.close()  # close the ca net
+            self.net.close()  # close the main net socket
